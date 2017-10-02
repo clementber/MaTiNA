@@ -1,0 +1,1 @@
+x.(y.z|z.y)|y.(x.z|z.x)|z.(x.y|y.x)

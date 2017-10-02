@@ -1,0 +1,450 @@
+%{
+  #include <iostream>
+  #include <string>
+  #include "../time_automata/grammar.hpp"
+  #include "yacc.tab.hpp"
+  using namespace automate;
+  using namespace std;
+
+  yy::parser::symbol_type yylex (yy::parser::semantic_type *arg);
+//  static yy::parser::symbol_type yylex(yy::parser::semantic_type *arg);
+
+
+  int cpt_clock(0);
+  int cpt_state(0);
+%}
+%skeleton "lalr1.cc"
+%require "3.0.4"
+
+%defines
+%define parser_class_name {parser}
+%define api.token.constructor
+%define api.value.type variant
+%define parse.trace
+%define parse.error verbose
+
+%parse-param {automate::Automate* generate_automate}
+
+%code requires
+{
+  class regex_driver;
+}
+// The parsing context.
+%param { regex_driver& driver }
+
+%locations
+%initial-action
+{
+  // Initialize the initial location.
+  @$.begin.filename = @$.end.filename = &driver.file;
+};
+%code
+{
+# include "parsingDriver.hpp"
+}
+
+%token END 0 "end of file"
+%token <double> NUMBER
+%token <std::string> EVENT
+%type <automate::Automate*> regexp
+
+%token LBALISE RBALISE COMMA LPARENTHESE RPARENTHESE LCROCHET RCROCHET
+
+%left AND
+%left SHUFFLE
+%left OR
+%left DOT
+%precedence PLUS STAR QUESTION
+%%
+rule :
+   regexp  {
+     map<State*, State*> dictionnary;
+
+     for(State & oldState : $1->states){
+       generate_automate->states.push_back(oldState);
+       State & new_state = *(--(generate_automate->states.end()));
+       dictionnary[&oldState]= &new_state;
+     }
+     generate_automate->clocks.insert(generate_automate->clocks.end(),$1->clocks.begin(), $1->clocks.end());
+     for(State & oldState : $1->states){
+       for(Transition & trans : $1->transitions[&oldState]){
+         generate_automate->transitions[dictionnary[&oldState]].push_back(
+           Transition(dictionnary[&oldState], dictionnary[trans.destination], trans.triggers, trans.clocks_constraints, trans.clocks_to_reset));
+       }
+     }
+     generate_automate->alphabet.insert($1->alphabet.begin(), $1->alphabet.end());
+     generate_automate->start = dictionnary[$1->start];
+     for(State * oldEndState : $1->endStates){
+       generate_automate->endStates.push_back(dictionnary[oldEndState]);
+     }
+     delete($1);
+}
+
+regexp :
+   regexp OR regexp {
+     Automate *a = new Automate();
+     a->states.push_back(State("s"+to_string(cpt_state++)));
+     a->states.push_back(State("s"+to_string(cpt_state++)));
+     list<State>::iterator it = a->states.begin();
+     a->start = &(*it);
+     it++;
+     a->endStates.push_back(&(*it));
+     a->clocks.insert(a->clocks.end(),$1->clocks.begin(), $1->clocks.end());
+     a->clocks.insert(a->clocks.end(),$3->clocks.begin(), $3->clocks.end());
+     a->alphabet.insert($1->alphabet.begin(), $1->alphabet.end());
+     a->alphabet.insert($3->alphabet.begin(), $3->alphabet.end());
+
+     map<State*, State*> dictionnary;
+
+     for(State & oldState : $1->states){
+       a->states.push_back(oldState);
+       State & new_state = *(--(a->states.end()));
+       dictionnary[&oldState]= &new_state;
+     }
+     for(State & oldState : $1->states){
+       State * newState = dictionnary[&oldState];
+       for(Transition & transition : $1->transitions[&oldState]){
+         Transition newTransition = Transition(newState,
+                                               dictionnary[transition.destination],
+                                               transition.triggers,
+                                               transition.clocks_constraints,
+                                               transition.clocks_to_reset);
+         a->transitions[newState].push_back(newTransition);
+       }
+     }
+     for(State * oldEndState : $1->endStates){
+       a->transitions[dictionnary[oldEndState]].push_back(Transition(dictionnary[oldEndState],a->endStates[0]));
+     }
+     a->transitions[a->start].push_back(Transition(a->start, dictionnary[$1->start]));
+
+     dictionnary = map<State*,State*>();
+     for(State & oldState : $3->states){
+       a->states.push_back(oldState);
+       State & new_state = *(--(a->states.end()));
+       dictionnary[&oldState]= &new_state;
+     }
+     for(State & oldState : $3->states){
+       State * newState = dictionnary[&oldState];
+       for(Transition & transition : $3->transitions[&oldState]){
+         Transition newTransition = Transition(newState,
+                                               dictionnary[transition.destination],
+                                               transition.triggers,
+                                               transition.clocks_constraints,
+                                               transition.clocks_to_reset);
+         a->transitions[newState].push_back(newTransition);
+       }
+     }
+     for(State* oldEndState : $3->endStates){
+       a->transitions[dictionnary[oldEndState]].push_back(Transition(dictionnary[oldEndState],a->endStates[0]));
+     }
+     a->transitions[a->start].push_back(Transition(a->start, dictionnary[$3->start]));
+     delete($1);
+     delete($3);
+
+     $$ = a;
+   }
+  |regexp DOT regexp {
+    Automate * a = new Automate();
+    a->clocks.insert(a->clocks.end(),$1->clocks.begin(), $1->clocks.end());
+    a->clocks.insert(a->clocks.end(),$3->clocks.begin(), $3->clocks.end());
+
+    a->alphabet.insert($1->alphabet.begin(), $1->alphabet.end());
+    a->alphabet.insert($3->alphabet.begin(), $3->alphabet.end());
+
+    map<State*, State*> dictionnary;
+
+    for(State & oldState : $1->states){
+      bool present = false;
+      for(State* endS : $1->endStates){
+        if(endS == &oldState){
+          present = true;
+          break;
+        }
+      }
+      if(!present){
+        a->states.push_back(oldState);
+        State & new_state = *(--(a->states.end()));
+        dictionnary[&oldState]= &new_state;
+      }
+    }
+    for(State & oldState : $3->states){
+      a->states.push_back(oldState);
+      State & new_state = *(--(a->states.end()));
+      dictionnary[&oldState]= &new_state;
+    }
+
+    for(State* oldEndState : $1->endStates){
+      dictionnary[oldEndState] = dictionnary[$3->start];
+    }
+
+    a->start = dictionnary[$1->start];
+
+    for(State & oldState : $1->states){
+      State * newState = dictionnary[&oldState];
+      for(Transition & transition : $1->transitions[&oldState]){
+        vector<string> clocks_to_reset(transition.clocks_to_reset);
+        if(dictionnary[transition.destination] == dictionnary[$3->start]){
+          for(Clock const& clk : $3->clocks){
+            clocks_to_reset.push_back(clk.name);
+          }
+        }
+        Transition newTransition = Transition(newState,
+                                              dictionnary[transition.destination],
+                                              transition.triggers,
+                                              transition.clocks_constraints,
+                                              clocks_to_reset);
+        a->transitions[newState].push_back(newTransition);
+      }
+    }
+
+    for(State & oldState : $3->states){
+      State * newState = dictionnary[&oldState];
+      for(Transition & transition : $3->transitions[&oldState]){
+        Transition newTransition = Transition(newState,
+                                              dictionnary[transition.destination],
+                                              transition.triggers,
+                                              transition.clocks_constraints,
+                                              transition.clocks_to_reset);
+        a->transitions[newState].push_back(newTransition);
+      }
+    }
+    for(State* oldEndState : $3->endStates){
+      a->endStates.push_back(dictionnary[oldEndState]);
+    }
+
+    delete($1);
+    delete($3);
+    $$ = a;
+  }
+  |regexp AND regexp {
+    Automate *a = new Automate();
+    map<State *,map<State*,State*>> dictionnary;
+
+    for(State & oldState1 : $1->states){
+      for(State & oldState3 : $3->states){
+        a->states.push_back(State(oldState1.id+"-"+oldState3.id));
+        State & newState = *(--(a->states.end()));
+        newState.clocks_constraints = oldState1.clocks_constraints;
+        newState.clocks_constraints.insert(oldState3.clocks_constraints.begin(),oldState3.clocks_constraints.end());
+        dictionnary[&oldState1][&oldState3] = &newState;
+      }
+    }
+
+    for(auto const& element1 : $1->transitions){
+      for(Transition const& trans1 : element1.second){
+        if(trans1.triggers.empty()){ continue; }
+        for(auto const& element3 : $3->transitions){
+          for(Transition const& trans3 : element3.second){
+            if(!trans3.triggers.empty() && trans1.triggers[0] == trans3.triggers[0]){
+                map<string,Interval> constraints(trans1.clocks_constraints);
+                constraints.insert(trans3.clocks_constraints.begin(), trans3.clocks_constraints.end());
+                vector<string> reseted(trans1.clocks_to_reset);
+                reseted.insert(reseted.end(),trans3.clocks_to_reset.begin(),trans3.clocks_to_reset.end());
+                Transition newTransition(dictionnary[trans1.origine][trans3.origine],dictionnary[trans1.destination][trans3.destination], trans1.triggers, constraints, reseted);
+                a->transitions[dictionnary[trans1.origine][trans3.origine]].push_back(newTransition);
+            }
+          }
+        }
+      }
+    }
+
+    for(auto const& element1 : $1->transitions){
+      for(Transition const& trans1 : element1.second){
+        if(!trans1.triggers.empty()){ continue; }
+        for(State & state : $3->states){
+          Transition newTransition(dictionnary[trans1.origine][&state],dictionnary[trans1.destination][&state], {}, trans1.clocks_constraints, trans1.clocks_to_reset);
+          a->transitions[dictionnary[trans1.origine][&state]].push_back(newTransition);
+        }
+      }
+    }
+
+    for(auto const& element3 : $3->transitions){
+      for(Transition const& trans3 : element3.second){
+        if(!trans3.triggers.empty()){ continue; }
+        for(State & state : $1->states){
+          Transition newTransition(dictionnary[&state][trans3.origine],dictionnary[&state][trans3.destination], {}, trans3.clocks_constraints, trans3.clocks_to_reset);
+          a->transitions[dictionnary[&state][trans3.origine]].push_back(newTransition);
+        }
+      }
+    }
+
+    for(State * endState1 : $1->endStates){
+      for(State * endState3 : $3->endStates){
+        a->endStates.push_back(dictionnary[endState1][endState3]);
+      }
+    }
+
+    a->clocks = $1->clocks;
+    a->clocks.insert(a->clocks.end(), $3->clocks.begin(), $3->clocks.end());
+    a->alphabet = $1->alphabet;
+    a->alphabet.insert($3->alphabet.begin(), $3->alphabet.end());
+    a->start = dictionnary[$1->start][$3->start];
+    delete ($1);
+    delete ($3);
+    $$=a;
+  }
+  |EVENT {
+    Automate *a = new Automate();
+    a->states.push_back(State("s"+to_string(cpt_state++)));
+    a->states.push_back(State("s"+to_string(cpt_state++)));
+    std::list<State>::iterator ite = a->states.begin();
+    a->start = &(*ite);
+    ite++;
+    a->endStates.push_back(&(*(ite)));
+    Transition trans(a->start, a->endStates[0], {$1}, {}, {});
+    a->transitions[a->start].push_back(trans);
+    a->alphabet.insert($1);
+
+    $$ = a;
+  }
+  |LBALISE regexp RBALISE LCROCHET NUMBER RCROCHET {
+    Automate *a = $2;
+    Clock clk("c" + to_string(cpt_clock));
+    cpt_clock++;
+    a->clocks.push_back(clk);
+    pair<string, Interval> out_constraint(clk.name, Interval($5));
+    pair<string, Interval> in_constraint(clk.name, Interval(0,$5));
+    for(State & state : a->states){
+      state.clocks_constraints.insert(in_constraint);
+      for(Transition & trans : a->transitions[&state]){
+        for(State * endState : a->endStates){
+          if(endState == trans.destination){
+            trans.clocks_constraints.insert(out_constraint);
+            break;
+          }
+        }
+      }
+    }
+    for(State * endState : a->endStates){
+      endState->clocks_constraints.erase(clk.name);
+    }
+    $$ = a;
+  }
+  |LBALISE regexp RBALISE LCROCHET NUMBER COMMA NUMBER RCROCHET {
+    Automate *a = $2;
+    Clock clk("c" + to_string(cpt_clock));
+    cpt_clock++;
+    a->clocks.push_back(clk);
+    pair<string, Interval> out_constraint(clk.name, Interval($5, $7));
+    pair<string, Interval> in_constraint(clk.name, Interval(0, $7));
+    for(State & state : a->states){
+      state.clocks_constraints.insert(in_constraint);
+      for(Transition & trans : a->transitions[&state]){
+        for(State * endState : a->endStates){
+          if(endState == trans.destination){
+            trans.clocks_constraints.insert(out_constraint);
+            break;
+          }
+        }
+      }
+    }
+    for(State * endState : a->endStates){
+      endState->clocks_constraints.erase(clk.name);
+    }
+    $$ = a;
+  }
+  |regexp PLUS {
+    Automate *a = $1;
+    vector<string> clocks_to_reset;
+    for(Clock const& clk : a->clocks){
+      clocks_to_reset.push_back(clk.name);
+    }
+    for(pair<State *,vector<Transition>> element : a->transitions){
+      for(Transition const& trans : element.second){
+        for(State * endState : a->endStates){
+          if(endState == trans.destination){
+            a->transitions[element.first].push_back(
+              Transition(element.first,a->start,trans.triggers,trans.clocks_constraints,clocks_to_reset));
+            break;
+          }
+        }
+      }
+    }
+    $$ = a;
+  }
+  |regexp QUESTION {
+    Automate *a = $1;
+    for(State * endState : a->endStates){
+      a->transitions[a->start].push_back(Transition(a->start,endState));
+    }
+    $$ = a;
+   }
+  |regexp STAR {
+    Automate *a = $1;
+    vector<string> clocks_to_reset;
+    for(Clock const& clk : a->clocks){
+      clocks_to_reset.push_back(clk.name);
+    }
+    for(pair<State *,vector<Transition>> element : a->transitions){
+      for(Transition const& trans : element.second){
+        for(State * endState : a->endStates){
+          if(endState == trans.destination){
+            a->transitions[element.first].push_back(
+              Transition(element.first,a->start,trans.triggers,trans.clocks_constraints,clocks_to_reset));
+            break;
+          }
+        }
+      }
+    }
+    for(State * endState : a->endStates){
+      a->transitions[a->start].push_back(Transition(a->start,endState));
+    }
+    $$ = a;
+  }
+  |LPARENTHESE regexp RPARENTHESE { $$=$2; }
+  |regexp SHUFFLE regexp {
+    Automate *a = new Automate();
+    map<State *,map<State*,State*>> dictionnary;
+
+    for(State & oldState1 : $1->states){
+      for(State & oldState3 : $3->states){
+        a->states.push_back(State(oldState1.id+"-"+oldState3.id));
+        State & newState = *(--(a->states.end()));
+        newState.clocks_constraints = oldState1.clocks_constraints;
+        newState.clocks_constraints.insert(oldState3.clocks_constraints.begin(),oldState3.clocks_constraints.end());
+        dictionnary[&oldState1][&oldState3] = &newState;
+      }
+    }
+
+    for(auto const& element1 : $1->transitions){
+      for(Transition const& trans1 : element1.second){
+        for(State & state3 : $3->states){
+          Transition newTransition(dictionnary[trans1.origine][&state3],dictionnary[trans1.destination][&state3], trans1.triggers, trans1.clocks_constraints, trans1.clocks_to_reset);
+          a->transitions[dictionnary[trans1.origine][&state3]].push_back(newTransition);
+        }
+      }
+    }
+
+    for(auto const& element3 : $3->transitions){
+      for(Transition const& trans3 : element3.second){
+        for(State & state1 : $1->states){
+          Transition newTransition(dictionnary[&state1][trans3.origine],dictionnary[&state1][trans3.destination], trans3.triggers, trans3.clocks_constraints, trans3.clocks_to_reset);
+          a->transitions[dictionnary[&state1][trans3.origine]].push_back(newTransition);
+        }
+      }
+    }
+
+    for(State * endState1 : $1->endStates){
+      for(State * endState3 : $3->endStates){
+        a->endStates.push_back(dictionnary[endState1][endState3]);
+      }
+    }
+
+    a->clocks = $1->clocks;
+    a->clocks.insert(a->clocks.end(), $3->clocks.begin(), $3->clocks.end());
+    a->alphabet = $1->alphabet;
+    a->alphabet.insert($3->alphabet.begin(), $3->alphabet.end());
+    a->start = dictionnary[$1->start][$3->start];
+    delete ($1);
+    delete ($3);
+    $$=a;
+  }
+
+
+%%
+void
+yy::parser::error (const yy::location& l,
+                          const std::string& m)
+{
+  driver.error (l, m);
+}

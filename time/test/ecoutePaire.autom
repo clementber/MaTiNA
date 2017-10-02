@@ -1,0 +1,4 @@
+listen #S #E [c <= 2]
+//
+listen listen a [c < 1]
+listen listen #N c [c = 2]

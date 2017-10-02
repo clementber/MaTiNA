@@ -1,0 +1,82 @@
+begin #S
+bdel
+l1all
+l1x
+l1y
+l2x
+l2y
+l2z
+l2xz
+l2yz
+l2xzd
+l2yzd
+l3xz_y
+l3xz_z
+l3yz_x
+l3yz_z
+end #E
+//
+begin bdel $E alloc:E
+bdel begin $E alloc:E free:E
+
+begin l1all #N alloc:{X,Y}
+l1all l1x $X
+l1x begin $X free:X
+l1x l1y $Y
+
+l1y l2x $X
+l2x l1y $Y
+l2x l1y $X
+l2x l1y $E alloc:E free:E
+l1y l2y $Y
+l2y l1y $X
+l2y l1y $Y
+l2y l1y $E alloc:E free:E
+l1y l2z $Z alloc:Z
+l2z l1y $E alloc:E free:{E,Z}
+l2z l1y $Z free:Z
+l2z l1y $X free:Z
+l2z l1y $Y free:Z
+l2x l2xz $Z alloc:Z
+l2y l2yz $Z alloc:Z
+l2z l2xz $X
+l2z l2yz $Y
+
+l2xz l2xzd $X
+l2xz l2xzd $E alloc:E
+l2xzd l2xz $X
+l2xzd l2xz $Y
+l2xzd l2xz $Z
+l2xzd l2xz $E alloc:E free:E
+l2yz l2yzd $Y
+l2yz l2yzd $E alloc:E
+l2yzd l2yz $X
+l2yzd l2yz $Y
+l2yzd l2yz $Z
+l2yzd l2yz $E alloc:E free:E
+
+l2xz l3xz_y $Y
+l3xz_y l2xz $X
+l3xz_y l2xz $Y
+l3xz_y l2xz $E alloc:E free:E
+l2xz l3xz_z $Z
+l3xz_z l2xz $X
+l3xz_z l2xz $Z
+l3xz_z l2xz $E alloc:E free:E
+l2yz l3yz_x $X
+l3yz_x l2yz $Y
+l3yz_x l2yz $X
+l3yz_x l2yz $E alloc:E free:E
+l2yz l3yz_z $Z
+l3yz_z l2yz $Y
+l3yz_z l2yz $Z
+l3yz_z l2yz $E alloc:E free:E
+l3xz_y end $Z
+l3xz_z end $Y
+l3yz_x end $Z
+l3yz_z end $X
+
+end end $X
+end end $Y
+end end $Z
+end end $E alloc:E free:E

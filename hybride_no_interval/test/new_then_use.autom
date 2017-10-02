@@ -1,0 +1,6 @@
+q0 #S
+q1 #E
+//
+q0 q0 $var alloc:var
+q0 q1 #N free:var
+q1 q1 $var alloc:var

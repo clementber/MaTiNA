@@ -1,0 +1,73 @@
+begin #S
+bdel
+l1all [0 <= c0 < 600]
+l1x [0 <= c0 < 600]
+l1y [0 <= c0 < 600]
+l2x [0 <= c0 < 600]
+l2y [0 <= c0 < 600]
+l2z [0 <= c0 < 600]
+l2xz [0 <= c0 < 600]
+l2yz [0 <= c0 < 600]
+l2xzd [0 <= c0 < 600]
+l2yzd [0 <= c0 < 600]
+l3xz_y [0 <= c0 < 600]
+l3xz_z [0 <= c0 < 600]
+l3yz_x [0 <= c0 < 600]
+l3yz_z [0 <= c0 < 600]
+end #E
+//
+begin bdel $E alloc:E
+bdel begin $E alloc:E free:E
+
+begin l1all #N alloc:{X,Y} reset:c0
+l1all l1x $X
+l1x l1y $Y
+
+l1y l2x $X
+l2x l1y $Y
+l2x l1y $E alloc:E free:E
+l1y l2y $Y
+l2y l1y $X
+l2y l1y $E alloc:E free:E
+l1y l2z $Z alloc:Z
+l2z l1y $E alloc:E free:{E,Z}
+l2z l1y $X free:Z
+l2z l1y $Y free:Z
+l2x l2xz $Z alloc:Z
+l2y l2yz $Z alloc:Z
+l2z l2xz $X
+l2z l2yz $Y
+
+l2xz l2xzd $X
+l2xz l2xzd $E alloc:E
+l2xzd l2xz $X free:E
+l2xzd l2xz $Y free:E
+l2xzd l2xz $Z free:E
+l2xzd l2xz $E alloc:E free:E
+l2yz l2yzd $Y
+l2yz l2yzd $E alloc:E
+l2yzd l2yz $X free:E
+l2yzd l2yz $Y free:E
+l2yzd l2yz $Z free:E
+l2yzd l2yz $E alloc:E free:E
+
+l2xz l3xz_y $Y
+l3xz_y l2xz $X
+l3xz_y l2xz $Z
+l3xz_y l2xz $E alloc:E free:E
+l2xz l3xz_z $Z
+l3xz_z l2xz $X
+l3xz_z l2xz $Y
+l3xz_z l2xz $E alloc:E free:E
+l2yz l3yz_x $X
+l3yz_x l2yz $Y
+l3yz_x l2yz $Z
+l3yz_x l2yz $E alloc:E free:E
+l2yz l3yz_z $Z
+l3yz_z l2yz $Y
+l3yz_z l2yz $X
+l3yz_z l2yz $E alloc:E free:E
+l3xz_y end $Z [1 <= c0 < 600]
+l3xz_z end $Y [1 <= c0 < 600]
+l3yz_x end $Z [1 <= c0 < 600]
+l3yz_z end $X [1 <= c0 < 600]

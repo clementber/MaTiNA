@@ -1,0 +1,33 @@
+start #S
+wx
+wy
+wz
+sz
+sy
+sx
+end #E
+//
+start wx x
+start wy y
+start wz z
+wx sz y
+wx sy z
+wy sz x
+wy sx z
+wz sx y
+wz sy x
+sx end x
+sy end y
+sz end z
+wx start nx
+wy start ny
+wz start nz
+sz wx ny
+sy wx nz
+sz wy nx
+sx wy nz
+sx wz ny
+sy wz nx
+end sx nx
+end sy ny
+end sz nz
