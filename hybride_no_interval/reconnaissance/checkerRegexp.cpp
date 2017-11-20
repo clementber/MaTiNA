@@ -42,11 +42,6 @@ int main(int argc, char**argv){
   string str = "";
   char c;
   int cpt = 0;
-  auto ite = checker.modele->states.begin();
-
-  State * begin = &(*ite);
-  ite++;
-  State * bdel = &(*ite);
 
   try{
     while((c = tes.get()) != EOF){
@@ -59,11 +54,6 @@ int main(int argc, char**argv){
           if(cpt%300 == 0){
             cout << (cpt/3) << " - "<< (((double)clock())/CLOCKS_PER_SEC)<< "\n";
             cout.flush();
-          }
-          if(checker.map_tokens[begin].empty() && checker.map_tokens[bdel].empty()){
-            cout << "L'analyse a crash à l'input : " << str << " - " << cpt << "\n";
-            str ="";
-            break;
           }
           str = "";
         }

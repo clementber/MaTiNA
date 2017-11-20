@@ -508,9 +508,13 @@ regexp :
     for(string const& var : $3){
       ids.push_back(variables_id.at(var));
     }
-    for(Transition * trans : $5->transitions[$5->start]){
-      trans->allocations.insert(trans->allocations.end(),ids.begin(), ids.end());
-    }
+    $5->states.push_back(State("s"+to_string(cpt_state++)));
+    State* new_start = &(*(--($5->states.end())));
+    Transition * new_trans = new Epsilon_Transition(new_start, $5->start);
+    new_trans->clocks_constraints.insert(pair<string,Interval>("c_epsi", Interval(0)));
+    new_trans->allocations.insert(new_trans->allocations.end(), ids.begin(), ids.end());
+    $5->transitions[new_start].push_back(new_trans);
+    $5->start = new_start;
     $$ = $5;
   }
   | regexp LACCOLADE vars RACCOLADE FREE{
@@ -518,16 +522,16 @@ regexp :
     for(string const& var : $3){
       ids.push_back(variables_id.at(var));
     }
-    for(auto & elmt : $1->transitions){
-      for(Transition * trans : elmt.second){
-        for(State * endState : $1->endStates){
-          if(trans->destination == endState){
-            trans->frees.insert(trans->frees.end(),ids.begin(), ids.end());
-            break;
-          }
-        }
-      }
+    $1->states.push_back(State("s"+to_string(cpt_state++)));
+    State * new_final_state = &(*(--($1->states.end())));
+    for(State * endState : $1->endStates){
+      Transition * new_trans = new Epsilon_Transition(endState, new_final_state);
+      new_trans->clocks_constraints.insert(pair<string,Interval>("c_epsi", Interval(0)));
+      new_trans->frees.insert(new_trans->allocations.end(), ids.begin(), ids.end());
+      $1->transitions[endState].push_back(new_trans);
     }
+    $1->endStates.clear();
+    $1->endStates.push_back(new_final_state);
     $$ = $1;
   }
 
