@@ -1,7 +1,7 @@
 #ifndef __AUTOMATE_RECOGNIZER__
 #define __AUTOMATE_RECOGNIZER__
 
-#include "../time_automata/grammar.hpp"
+#include "../fm_automata/grammar.hpp"
 
 using namespace std;
 using namespace automate;

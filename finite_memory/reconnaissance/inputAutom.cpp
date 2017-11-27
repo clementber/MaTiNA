@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "../time_automata/grammar.hpp"
+#include "../fm_automata/grammar.hpp"
 #include "../parser_file2auto/parsingDriver.hpp"
 
 using namespace std;

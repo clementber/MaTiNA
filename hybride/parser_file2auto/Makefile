@@ -20,5 +20,5 @@ lexer.yy.cc : lexer.lex yacc.tab.hpp
 	flex --outfile=lexer.yy.cc lexer.lex
 
 clean :
-	rm lexer.yy.cc location.hh position.hh stack.hh yacc.output yacc.tab.*pp *.o *.a
+	rm -f lexer.yy.cc location.hh position.hh stack.hh yacc.output yacc.tab.*pp *.o *.a
 	rm -f test

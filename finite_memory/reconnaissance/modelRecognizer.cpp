@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
 #include "modelRecognizer.hpp"
-#include "../time_automata/grammar.hpp"
+#include "../fm_automata/grammar.hpp"
 
 using namespace automate;
 using namespace std;
@@ -9,7 +9,7 @@ using namespace recognizer;
 
 Token::Token(Automate* automate, State* position){
   state = position;
-  
+
 }
 
 Token;;Token(Token const& token);
