@@ -13,88 +13,78 @@
 using namespace std;
 
 namespace automate{
-class Interval{
-public:
-  double borne_inf, borne_sup;
-  int include_inf, include_sup;
 
-  Interval();
-  Interval(double constant);
-  Interval(double born_inf, double born_sup);
-  Interval(double born_inf, bool incl_inf, double born_sup, bool incl_sup);
-  Interval(double born_inf, int incl_inf, double born_sup, int incl_sup);
+  class Bound{
+  public:
+    enum Inclusion {LESS, LESSEQ};
+    double value;
+    Inclusion inclusion;
 
-  //SUBSET!!
-  bool operator<=(Interval const& interv);
-  void operator=(double const val);
-  bool operator==(Interval const& interv) const;
-  Interval operator+(Interval const& interv) const;
-  void operator+=(Interval const& interv);
-  void operator+=(double const val);
-  bool isValid();
+    Bound();
+    Bound(double value);
+    Bound(double value, bool included);
 
-  static Interval intersect(Interval const& interv1, Interval const& interv2){
-    double borne_inf, borne_sup;
-    int include_inf, include_sup;
-
-    if(interv1.borne_inf > interv2.borne_inf){
-      borne_inf = interv1.borne_inf;
-      include_inf = interv1.include_inf;
-    }else if(interv1.borne_inf < interv2.borne_inf){
-      borne_inf = interv2.borne_inf;
-      include_inf = interv2.include_inf;
-    }else{
-      borne_inf = interv1.borne_inf;
-      include_inf = max(interv1.include_inf, interv2.include_inf);
-    }
-
-    if(interv1.borne_sup < interv2.borne_sup){
-      borne_sup = interv1.borne_sup;
-      include_sup = interv1.include_sup;
-    }else if(interv1.borne_sup > interv2.borne_sup){
-      borne_sup = interv2.borne_sup;
-      include_sup = interv2.include_sup;
-    }else{
-      borne_sup = interv1.borne_sup;
-      include_sup = min(interv1.include_sup , interv2.include_sup);
-    }
-    //DEBUG
-    //cout << "In include : "<< include_inf << "|" << borne_inf <<","<<borne_sup<<"|"<<include_sup<<"\n";
-
-    Interval res(borne_inf,include_inf,borne_sup,include_sup);
-    return res;
+    Bound operator+(const Bound bound2) const;
+    Bound intersect(const Bound bound2) const;
+    bool operator<(const Bound bound2) const;
+    bool operator<=(const Bound bound2) const;
   }
-};
+  /**Differences Bounds Matrice
+  * This class is a matrice which contain for each pair of (column,row) the
+  * maximal bound of the clocks values substraction row_clockId - cloumn_clockId.
+  * Each bound is a pair (double value, {LESS, LESSEQ} inclusion).
+  * The first row and column of the matrice is for the clock_0 which value is
+  * always 0. This clock is used to know the current interval of value for all
+  * the other clock.
+  **/
+  class DBM{
+    Bound [][] matrice;
+  public:
+    DBM();
+    DBM(int clocks_number);
+    DBM(Automate automate);
+
+    static DBM fail();
+
+    //Time modification operators
+    void increment(double time_delay);
+
+    //Reductions and validation operators.
+    bool isValid() const;
+    bool reduce();
+
+    DBM intersect(const DBM dbm2) const;
+    DBM operator+(const DBM dbm2) const;
+    //Subset operators
+    bool operator<(const DBM dbm2) const;
+    bool operator<=(const DBM dbm2) const;
+
+  }
+
 
   class Clock{
+  private:
+    int id;
   public:
     string name;
-    Interval value;
-    Interval increm;
 
-    Clock(string const& p_name);
+    Clock(string const& p_name, int id);
     ~Clock();
 
-    void reset();
-    void increment(double n);
-    void apply_increment();
-    bool operator==(Clock const& c2);
-    //Kind of subset with management of increment.
-    bool operator<=(Clock const& c2);
     void print() const;
   };
 
   class State{
     public:
       string id;
-      map<string,Interval> clocks_constraints;
+      DBM clocks_constraints;
 
       State();
       State(string identifiant);
-      State(string identifiant, map<string,Interval> clocks_constraints);
+      State(string identifiant, DBM clocks_constraints);
       ~State();
 
-      vector<Clock> accept(vector<Clock> const& clocks_status);
+      DBM accept(DBM const& clocks_status) const;
   };
 
   class Transition{
@@ -102,8 +92,8 @@ public:
     State* origine;
     State* destination;
     vector<string> triggers;
-    map<string,Interval> clocks_constraints;
-    vector<string> clocks_to_reset;
+    DBM clocks_constraints;
+    vector<Clock*> clocks_to_reset;
 
     /**
     * with the first constructor, the constraints of the transitions will be the
@@ -111,12 +101,12 @@ public:
     * destination->clocks_constraints.
     */
     Transition(State* const& ori, State* const& dest, vector<string> events,
-               map<string,Interval> const& clocks_interv,
-               vector<string> const& clock_to_reset);
+               DBM const& clocks_interv,
+               vector<Clock*> const& clock_to_reset);
     Transition(State* const& ori, State* const& dest);
     ~Transition();
 
-    bool epsilon();
+    bool epsilon() const;
     /**
     * Accept return an empty vector of clock if clocks_status don't respect the
     * constraints. Else, it return a new vector of clock whose the possible
@@ -125,8 +115,8 @@ public:
     * vector if the event isn't one o it's triggers. However, if no events are
     * given as parameter, only the transition with no triggers can be crossed.
     */
-    vector<Clock> accept(string const& event, vector<Clock> const& clocks_status);
-    vector<Clock> accept(vector<Clock> const& clocks_status);
+    DBM accept(string const& event, DBM const& clocks_status) const;
+    DBM accept(DBM const& clocks_status) const;
   };
 
   class Automate{

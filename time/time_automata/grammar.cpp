@@ -8,93 +8,9 @@
 using namespace automate;
 using namespace std;
 
-Interval::Interval() : borne_inf(-1), borne_sup(-1),
-                       include_inf(0), include_sup(0) {}
-Interval::Interval(double constant):include_inf(0), include_sup(0){
-  if(constant >= 0){
-    borne_inf = borne_sup = constant;
-  }else{
-      borne_inf = borne_sup = -1;
-  }
-}
-Interval::Interval(double born_inf, double born_sup){
-  if(born_inf >= 0 && born_inf <= born_sup){
-    borne_inf = born_inf;
-    borne_sup = born_sup;
-  }else{
-      borne_inf = borne_sup = -1;
-  }
-  include_inf = include_sup = 0;
-}
-Interval::Interval(double born_inf, bool incl_inf, double born_sup, bool incl_sup):
-                          include_inf(incl_inf?0:1), include_sup(incl_sup?0:-1){
-  if(born_inf >= 0 && (born_inf < born_sup || (born_inf==born_sup && incl_inf && incl_sup))){
-    borne_inf = born_inf;
-    borne_sup = born_sup;
-  }else{
-      borne_inf = borne_sup = -1;
-  }
-}
-Interval::Interval(double born_inf, int incl_inf, double born_sup, int incl_sup){
-  if(born_inf >= 0 && (born_inf < born_sup || (born_inf==born_sup && (incl_inf <= incl_sup)))){
-    borne_inf = born_inf;
-    borne_sup = born_sup;
-  }else{
-      borne_inf = borne_sup = -1;
-  }
-  include_inf = incl_inf;
-  include_sup = incl_sup;
-}
-
-// SUBSET !!
-bool Interval::operator<=(Interval const& interv){
-  return (((this->borne_inf > interv.borne_inf) ||
-            (this->borne_inf==interv.borne_inf
-            && this->include_inf>=interv.include_inf))
-       && ((this->borne_sup < interv.borne_sup) ||
-            (this->borne_sup==interv.borne_sup
-            && this->include_sup<=interv.include_sup)));
-}
-
-void Interval::operator=(double const val){
-  this->borne_inf = val;
-  this->borne_sup = val;
-  this->include_inf = 0;
-  this->include_sup = 0;
-}
-
-bool Interval::operator==( Interval const& interv) const{
-  return this->borne_inf == interv.borne_inf
-      && this->borne_sup == interv.borne_sup
-      && this->include_inf == interv.include_inf
-      && this->include_sup == interv.include_sup;
-}
-
-Interval Interval::operator+(Interval const& interv) const{
-  Interval res;
-  res.borne_inf = this->borne_inf+interv.borne_inf;
-  res.borne_sup = this->borne_sup+interv.borne_sup;
-  res.include_inf = this->include_inf + interv.include_inf;
-  res.include_sup = this->include_sup + interv.include_sup;
-  return res;
-}
-
-void Interval::operator+=(Interval const& interv){
-  *this = *this + interv;
-}
-
-void Interval::operator+=(double const val){
-  this->borne_inf+=val;
-  this->borne_sup+=val;
-}
-
-bool Interval::isValid(){
-  return borne_inf >= 0
-      && (borne_inf < borne_sup || (borne_inf==borne_sup && (include_inf <= include_sup)));
-}
 
 State::State(string identifiant,
-             map<string,Interval> clock_constraints) :
+             DBM clock_constraints) :
                id(identifiant), clocks_constraints(clock_constraints){ }
 State::State(string identifiant):id(identifiant),clocks_constraints() { }
 State::State() = default;
