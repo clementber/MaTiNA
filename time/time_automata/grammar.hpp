@@ -24,21 +24,24 @@ namespace automate{
     Bound(double value);
     Bound(double value, bool included);
 
-    Bound operator+(const Bound bound2) const;
-    Bound intersect(const Bound bound2) const;
-    bool operator<(const Bound bound2) const;
-    bool operator<=(const Bound bound2) const;
+    Bound operator+(Bound const& bound2) const;
+    Bound intersect(Bound const& bound2) const;
+    bool operator<(Bound const& bound2) const;
+    bool operator<=(Bound const& bound2) const;
   }
   /**Differences Bounds Matrice
-  * This class is a matrice which contain for each pair of (column,row) the
+  * This class is a matrice which contain for each pair of (row,column) the
   * maximal bound of the clocks values substraction row_clockId - cloumn_clockId.
   * Each bound is a pair (double value, {LESS, LESSEQ} inclusion).
   * The first row and column of the matrice is for the clock_0 which value is
   * always 0. This clock is used to know the current interval of value for all
   * the other clock.
+  *
+  * If matrice[row][column] = (val,~) Then, there exist clocks c1 and c2
+  * where c1.id == row and c2.id == column and c1-c2 ~ val. (~ in {<, <=}).
   **/
   class DBM{
-    Bound [][] matrice;
+    vector<vector<Bound>> matrice;
   public:
     DBM();
     DBM(int clocks_number);
@@ -48,16 +51,17 @@ namespace automate{
 
     //Time modification operators
     void increment(double time_delay);
+    void reset(Clock* clk);
 
     //Reductions and validation operators.
     bool isValid() const;
     bool reduce();
 
-    DBM intersect(const DBM dbm2) const;
-    DBM operator+(const DBM dbm2) const;
+    DBM intersect(DBM const& dbm2) const;
+    DBM operator+(DBM const& dbm2) const;
     //Subset operators
-    bool operator<(const DBM dbm2) const;
-    bool operator<=(const DBM dbm2) const;
+    bool operator<(DBM const& dbm2) const;
+    bool operator<=(DBM const& dbm2) const;
 
   }
 
@@ -71,6 +75,7 @@ namespace automate{
     Clock(string const& p_name, int id);
     ~Clock();
 
+    int getId();
     void print() const;
   };
 
