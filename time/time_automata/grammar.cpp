@@ -60,19 +60,53 @@ void DBM::reset(Clock* clk){
   //TODO
 }
 
-//Reductions and validation operators.
+//Validation operator.
 bool DBM::isValid() const{
+  //Check if the clocks individual interval are consistent.
   for(int i = 0; i< matrice.length; i++){
+    //Verification of the diagonal values.
     if(matrice[i][i].value != 0 || matrice[i][i].inclusion != LESSEQ)
       return false;
+    //Both bound of clocks values are positive
     if ((-1*matrice[0][i].value) < 0 || matrice[i][0].value < 0
        || (matrice[i][0].value==0 && matrice[i][0].inclusion== LESS)
        || (matrice[0][i].value==0 && matrice[0][i].inclusion== LESS))
       return false;
-    if()
+    //The maximum bound is greater than the minimal one.
+    if ((-1*matrice[0][i].value) > matrice[i][0].value
+    || ((-1*matrice[0][i].value) == matrice[i][0].value
+        && (matrice[0][i].inclusion == LESS
+        ||  matrice[i][0].inclusion == LESS)))
+      return false;
   }
-
+  //Check if the relation between clocks is consistent.
+  //(ci-cj ~ value, where ~ in {<,<=})
+  for(int i=1; i<matrice.length; i++){
+    for(int j = i+1; j<matrice.length; j++){
+      //The maximum bound is greater than the minimal one.
+      if ((-1*matrice[j][i].value) > matrice[i][j].value
+      || ((-1*matrice[j][i].value) == matrice[i][j].value
+          && (matrice[j][i].inclusion == LESS
+          ||  matrice[i][j].inclusion == LESS)))
+        return false;
+      //Check if the clocks values are consistent with the relation.
+      if((matrice[i][0]-(-1*matrice[0][j])) < (-1*matrice[j][i])
+      || ((matrice[i][0]-(-1*matrice[0][j])) == (-1*matrice[j][i])
+         && (matrice[j][i].inclusion==LESS
+           ||matrice[i][0].inclusion==LESS
+           ||matrice[0][j].inclusion==LESS))
+      ||((-1*matrice[0][i])-matrice[j][0]) > (matrice[i][j])
+      || (((-1*matrice[0][i])-matrice[j][0]) == (matrice[i][j])
+         && (matrice[i][j].inclusion==LESS
+           ||matrice[0][i].inclusion==LESS
+           ||matrice[j][0].inclusion==LESS)))
+      return false;
+    }
+  }
+  return true;
 }
+
+//Reduction operator.
 bool DBM::reduce();
 
 DBM DBM::intersect(DBM const& dbm2) const;
