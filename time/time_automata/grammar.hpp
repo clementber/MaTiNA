@@ -42,16 +42,18 @@ namespace automate{
   **/
   class DBM{
     vector<vector<Bound>> matrice;
+    int length;
   public:
     DBM();
     DBM(int clocks_number);
     DBM(Automate automate);
 
     static DBM fail();
+    int getClocks_number();
 
     //Time modification operators
     void increment(double time_delay);
-    void reset(Clock* clk);
+    void reset(vector<Clock*> clk);
 
     //Reductions and validation operators.
     bool isValid() const;
