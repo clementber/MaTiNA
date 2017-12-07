@@ -25,7 +25,7 @@ namespace automate{
     Bound(double value, bool included);
 
     Bound operator+(Bound const& bound2) const;
-    Bound intersect(Bound const& bound2) const;
+    Bound min(Bound const& bound2) const;
     bool operator<(Bound const& bound2) const;
     bool operator<=(Bound const& bound2) const;
   }
@@ -45,6 +45,7 @@ namespace automate{
     int length;
   public:
     DBM();
+    DBM(DBM dbm);
     DBM(int clocks_number);
     DBM(Automate automate);
 
@@ -54,13 +55,13 @@ namespace automate{
     //Time modification operators
     void increment(double time_delay);
     void reset(vector<Clock*> clk);
+    void maximize(vector<Clock*> clks);
 
     //Reductions and validation operators.
     bool isValid() const;
     bool reduce();
 
     DBM intersect(DBM const& dbm2) const;
-    DBM operator+(DBM const& dbm2) const;
     //Subset operators
     bool operator<(DBM const& dbm2) const;
     bool operator<=(DBM const& dbm2) const;

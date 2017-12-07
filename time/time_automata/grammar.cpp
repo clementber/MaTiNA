@@ -16,7 +16,7 @@ Bound Bound::operator+(Bound const& bound2) const{
   return Bound(this->value + bound2.value, ((this->inclusion == LESS ||bound2.inclusion == LESS)?LESS:LESSEQ));
 }
 
-Bound Bound::intersect(Bound const& bound2) const{
+Bound Bound::min(Bound const& bound2) const{
   if(*this < bound2.value)
     return *this;
   else
@@ -34,11 +34,16 @@ bool Bound::operator<=(Bound const& bound2) const{
 }
 
 DBM::DBM():DBM(0){}
+DBM::DBM(DBM to_copy):length(to_copy.length){
+  for(int i = 0; i < length;i++)
+    for(int j = 0; j < length;j++)
+      matrice[i][j]=to_copy.matrice[i][j];
+}
 DBM::DBM(int clocks_number):length(clocks_number+1){
   for(int i = 0; i<= clocks_number; i++){
     matrice.push_back(std::vector<Bound>(clocks_number+1));
     for(int j=0; j<= clocks_number; j++){
-      matrice[i][j]=(i==j?Bound(0,LESSEQ):Bound());
+      matrice[i][j]=((i==j||i==0)?Bound(0):Bound());
     }
   }
 }
@@ -65,15 +70,27 @@ void DBM::reset(vector<Clock*> clks){
     int id = clk->getId()
     matrice[id][0]=Bound(0);
     matrice[0][id]=Bound(0);
-    //TODO : Optimizable?
     for(int i = 1; i<length; i++){
-      if(i==id) {
-        matrice[i][id] = Bound();
+      if(i!=id) {
+        matrice[i][id] = matrice[i][0];
+        matrice[id][i] = matrice[0][i];
+      }
+    }
+  }
+}
+
+void DBM::maximize(vector<Clock*> clks){
+  for(Clock* clk : clks){
+    int id = clk->getId()
+    matrice[id][0]=Bound();
+    matrice[0][id]=Bound(0);
+    for(int i = 1; i<length; i++){
+      if(i!=id) {
+        matrice[i][id] = matrice[i][0];
         matrice[id][i] = Bound();
       }
     }
   }
-  reduce();
 }
 
 //Validation operator.
@@ -125,6 +142,7 @@ bool DBM::isValid() const{
 //Reduction operator. Refine the dbm by reducing the interval
 //which are lager than needed.
 //PRECONDITION : this->isValid()==true.
+//TODO eclairecir l'arithmetique en ajoutant operation sur bound!!
 bool DBM::reduce(){
   for(int i=1; i<length;i++){
     for(int j=1; i<length;j++){
@@ -157,18 +175,25 @@ bool DBM::reduce(){
 //The intersection of a DBM is the matrix where each element is the smallest
 //from both the DBM in parameter.
 DBM DBM::intersect(DBM const& dbm2) const{
-  if(dbm2.length != this->length){
-    return DBM::fail();
+  if(this->length == 1){
+    return dbm2;
   }
-  DBM intersection = DBM(this->length);
-  for(int i = 0; i < this->length;i++)
-    for(int j = 0; j < this->length; j++){
-      intersection.matrice[i][j] = (matrice[i][j]<dbm2.matrice[i][j]?matrice[i][j]:dbm2.matrice[i][j]);
+  if(dbm2.length == 1)
+    return *this;
+  DBM intersection;
+  if(dbm2.length > this->length){
+    intersection = DBM(dbm2.length-1).intersect(*this);
+  }else{
+    intersection = DBM(*this);
+  }
+
+  for(int i = 0; i < dbm2->length;i++)
+    for(int j = 0; j < dbm2->length; j++){
+      intersection.matrice[i][j] = intersection.matrice[i][j].min(dbm2.matrice[i][j]);
     }
   return intersection;
 }
 
-DBM DBM::operator+(DBM const& dbm2) const;
 //Subset operators
 bool DBM::operator<(DBM const& dbm2) const{
   if(dbm2.length != this->length){
@@ -213,33 +238,25 @@ DBM State::accept(DBM const& clocks_status) const{
   if(clocks_constraints.getClocks_number() == 0){
     return clocks_status;
   }
-  return clocks_constraints.intersection(clocks_status).reduce();
-}
-
-void merge_constraints(DBM & dbm1, DBM const& dbm2){
-  //TODO penser au cas où dbm1 et/ou dbm2 est vide.
+  return clocks_constraints.intersect(clocks_status).reduce();
 }
 
 Transition::Transition(State* const& ori, State* const& dest, vector<string> events,
            DBM const& clocks_interv,
            vector<Clock*> const& clock_to_reset) : origine(ori), destination(dest),
            triggers(events), clocks_to_reset(clock_to_reset){
-  clocks_constraints = DBM(clocks_interv);
-  merge_constraints(clocks_constraints, ori->clocks_constraints);
+  clocks_constraints = clocks_interv.intersect(ori->clocks_constraints);
   /**If the clock is reset there is no need to verify the destination's
    * constraints before we reset the clock.
    */
   DBM dest_constraints(dest->clocks_constraints);
-  for(auto clk_reseted : clock_to_reset){
-    //TODO redo the erase for a matrice
-    dest_constraints.erase(clk_reseted);
-  }
+  dest_constraints.maximze(clocks_to_reset);
+
   merge_constraints(clocks_constraints, dest_constraints);
 }
 Transition::Transition(State* const& ori, State* const& dest)
                              :origine(ori), destination(dest){
-  merge_constraints(clocks_constraints, ori->clocks_constraints);
-  merge_constraints(clocks_constraints, dest->clocks_constraints);
+  clocks_constraints = ori->clocks_constraints.intersect(dest->clocks_constraints);
 }
 Transition::~Transition() = default;
 bool Transition::epsilon() const{
