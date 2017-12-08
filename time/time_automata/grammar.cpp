@@ -159,6 +159,10 @@ DBM DBM::intersect(DBM const& dbm2) const{
   }
   if(dbm2.length == 1)
     return *this;
+  if(this->length != dbm2.length){
+    cout << "Erreur d'intersection. Les deux DBM n'ont pas le même nombre d'horloge!"
+    return DBM::fail();
+  }
   DBM intersection;
   if(dbm2.length > this->length){
     intersection = DBM(dbm2.length-1).intersect(*this);
@@ -175,7 +179,9 @@ DBM DBM::intersect(DBM const& dbm2) const{
 
 //Subset operators
 bool DBM::operator<(DBM const& dbm2) const{
+  if(dbm2.length==1) return true;
   if(dbm2.length != this->length){
+    cout << "Erreur Subset. Les deux DBM n'ont pas le même nombre d'horloge!"
     return false;
   }
   for(int i = 0; i < length; i++)
@@ -185,7 +191,9 @@ bool DBM::operator<(DBM const& dbm2) const{
   return true;
 }
 bool DBM::operator<=(DBM const& dbm2) const{
+  if(dbm2.length==1) return true;
   if(dbm2.length != this->length){
+    cout << "Erreur Subset. Les deux DBM n'ont pas le même nombre d'horloge!"
     return false;
   }
   for(int i = 0; i < length; i++)
@@ -230,14 +238,15 @@ Transition::Transition(State* const& ori, State* const& dest, vector<string> eve
    */
   DBM dest_constraints(dest->clocks_constraints);
   dest_constraints.maximze(clocks_to_reset);
-
-  merge_constraints(clocks_constraints, dest_constraints);
+  clocks_constraints = clocks_constraints.intersect(dest_constraints);
 }
+
 Transition::Transition(State* const& ori, State* const& dest)
                              :origine(ori), destination(dest){
   clocks_constraints = ori->clocks_constraints.intersect(dest->clocks_constraints);
 }
 Transition::~Transition() = default;
+
 bool Transition::epsilon() const{
   return triggers.empty();
 }
