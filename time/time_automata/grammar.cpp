@@ -10,17 +10,19 @@ Bound::Bound(double value): value(value), inclusion(LESSEQ){}
 Bound::Bound(double value, bool included): value(value), inclusion(included){}
 
 Bound Bound::operator+(Bound const& bound2) const{
-  if(this->value == numeric_limits<double>::max() || bound2.value == numeric_limits<double>::max()){
+  if(this->value == numeric_limits<double>::max()
+  || bound2.value == numeric_limits<double>::max()){
     return Bound();
   }
   return Bound(this->value + bound2.value, ((this->inclusion == LESS ||bound2.inclusion == LESS)?LESS:LESSEQ));
 }
 
-Bound Bound::min(Bound const& bound2) const{
-  if(*this < bound2.value)
-    return *this;
-  else
-    return bound2;
+bool Bound::operator==(Bound const& bound2)const{
+  return value==bound2.value && inclusion==bound2.inclusion;
+}
+
+bool Bound::operator!=(Bound const& bound2)const{
+  return !(*this==bound2);
 }
 
 bool Bound::operator<(Bound const& bound2) const{
@@ -33,11 +35,18 @@ bool Bound::operator<=(Bound const& bound2) const{
       || ((this->value == bound2.value)&& (this->inclusion <= bound2.inclusion));
 }
 
+Bound Bound::min(Bound const& bound2) const{
+  if(*this < bound2.value)
+    return *this;
+  else
+    return bound2;
+}
+
 DBM::DBM():DBM(0){}
-DBM::DBM(DBM to_copy):length(to_copy.length){
+DBM::DBM(DBM source):length(to_copy.length){
   for(int i = 0; i < length;i++)
     for(int j = 0; j < length;j++)
-      matrice[i][j]=to_copy.matrice[i][j];
+      matrice[i][j]=source.matrice[i][j];
 }
 DBM::DBM(int clocks_number):length(clocks_number+1){
   for(int i = 0; i<= clocks_number; i++){
@@ -79,6 +88,7 @@ void DBM::reset(vector<Clock*> clks){
   }
 }
 
+//The value of the given clocks became the interval [0,+inf].
 void DBM::maximize(vector<Clock*> clks){
   for(Clock* clk : clks){
     int id = clk->getId()
@@ -93,47 +103,33 @@ void DBM::maximize(vector<Clock*> clks){
   }
 }
 
-//Validation operator.
-bool DBM::isValid() const{
+//Return false if the DBM represent an
+bool DBM::empty() const{
   //Check if the clocks individual interval are consistent.
+  Bound zero = Bound(0);
   for(int i = 0; i< length; i++){
     //Verification of the diagonal values.
-    if(matrice[i][i].value != 0 || matrice[i][i].inclusion != LESSEQ)
+    if(matrice[i][i] != zero)
       return false;
-    //Both bound of clocks values are positive
-    if ((-1*matrice[0][i].value) < 0 || matrice[i][0].value < 0
-       || (matrice[i][0].value==0 && matrice[i][0].inclusion== LESS)
-       || (matrice[0][i].value==0 && matrice[0][i].inclusion== LESS))
+    //Bounds of clocks values are positive. Don't need to test maximum bound.
+    //(The minimal bound of a clock c_i is -1*matrice[0][i])
+    if (zero < matrice[0][i])
       return false;
     //The maximum bound is greater than the minimal one.
-    if ((-1*matrice[0][i].value) > matrice[i][0].value
-    || ((-1*matrice[0][i].value) == matrice[i][0].value
-        && (matrice[0][i].inclusion == LESS
-        ||  matrice[i][0].inclusion == LESS)))
+    if (matrice[i][0] + matrice[0][i] < zero)
       return false;
   }
   //Check if the relation between clocks is consistent.
-  //(ci-cj ~ value, where ~ in {<,<=})
+  //(ci-cj ~ matrice_ij, where ~ in {<,<=})
   for(int i=1; i<length; i++){
     for(int j = i+1; j<length; j++){
       //The maximum bound is greater than the minimal one.
-      if ((-1*matrice[j][i].value) > matrice[i][j].value
-      || ((-1*matrice[j][i].value) == matrice[i][j].value
-          && (matrice[j][i].inclusion == LESS
-          ||  matrice[i][j].inclusion == LESS)))
+      if (matrice[i][j] + matrice[j][i] < zero)
         return false;
       //Check if the clocks values are consistent with the relation.
-      if((matrice[i][0].value+matrice[0][j].value) < (-1*matrice[j][i].value)
-      || ((matrice[i][0].value+matrice[0][j].value) == (-1*matrice[j][i].value)
-         && (matrice[j][i].inclusion==LESS
-         ||matrice[i][0].inclusion==LESS
-         ||matrice[0][j].inclusion==LESS))
-      ||((-1*matrice[0][i].value)-matrice[j][0].value) > (matrice[i][j].value)
-      || (((-1*matrice[0][i].value)-matrice[j][0].value) == (matrice[i][j].value)
-         && (matrice[i][j].inclusion==LESS
-         ||matrice[0][i].inclusion==LESS
-         ||matrice[j][0].inclusion==LESS)))
-      return false;
+      if((matrice[i][0]+matrice[0][j]+matrice[j][i] < zero)
+      || (matrice[0][i]+matrice[j][0]+matrice[i][j] < zero))
+        return false;
     }
   }
   return true;
@@ -142,32 +138,15 @@ bool DBM::isValid() const{
 //Reduction operator. Refine the dbm by reducing the interval
 //which are lager than needed.
 //PRECONDITION : this->isValid()==true.
-//TODO eclairecir l'arithmetique en ajoutant operation sur bound!!
-bool DBM::reduce(){
+bool DBM::normalize(){
   for(int i=1; i<length;i++){
     for(int j=1; i<length;j++){
       if(i==j) continue;
       //Reduce the interval of each clocks depending on the relation on it
-      if(matrice[0][i].value - matrice[0][j].value > matrice[j][i].value)
-        ||((matrice[0][i].value - matrice[0][j].value == matrice[j][i].value)
-          &&(matrice[0][i].inclusion == LESS
-          || matrice[0][j].inclusion == LESS
-          || matrice[j][i].inclusion == LESS))){
-        matrice[0][i]=Bound(matrice[0][j].value+matrice[j][i].value, matrice[j][i].inclusion);
-      }
-      if((matrice[i][0].value - matrice[j][0].value > matrice[i][j].value)
-        ||((matrice[i][0].value - matrice[j][0].value == matrice[i][j].value)
-          &&(matrice[i][0].inclusion == LESS
-          || matrice[j][0].inclusion == LESS
-          || matrice[i][j].inclusion == LESS))){
-        matrice[i][0]=Bound(matrice[j][0].value+matrice[i][j].value, matrice[i][j].inclusion);
+      matrice[0][i]=matrice[0][i].min(matrice[0][j]+matrice[j][i]);
+      matrice[i][0]=matrice[i][0].min(matrice[j][0]+matrice[i][j]);
       //Reduce a relation if too far from the clocks values.
-      }else{
-        matrice[i][j].inclusion = ((matrice[i][0].value + matrice[0][j].value)<=matrice[i][j].value
-                                  ? min(matrice[i][j].inclusion,min(matrice[i][0].inclusion, matrice[0][j].inclusion))
-                                  : matrice[i][j].inclusion);
-        matrice[i][j].value = min(matrice[i][j].value,matrice[i][0].value + matrice[0][j].value);
-      }
+      matrice[i][j] = matrice[i][j].min(matrice[i][0] + matrice[0][j]);
     }
   }
 }

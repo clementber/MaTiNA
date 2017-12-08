@@ -25,9 +25,11 @@ namespace automate{
     Bound(double value, bool included);
 
     Bound operator+(Bound const& bound2) const;
-    Bound min(Bound const& bound2) const;
+    bool operator==(Bound const& bound2) const;
+    bool operator!=(Bound const& bound2) const;
     bool operator<(Bound const& bound2) const;
     bool operator<=(Bound const& bound2) const;
+    Bound min(Bound const& bound2) const;
   }
   /**Differences Bounds Matrice
   * This class is a matrice which contain for each pair of (row,column) the
@@ -49,18 +51,24 @@ namespace automate{
     DBM(int clocks_number);
     DBM(Automate automate);
 
+    //Return a DBM describing no zone.
     static DBM fail();
     int getClocks_number();
 
     //Time modification operators
     void increment(double time_delay);
+    //The value of the given clocks are set to zero.
     void reset(vector<Clock*> clk);
+    //The value of the given clocks became the interval [0,+inf].
     void maximize(vector<Clock*> clks);
 
-    //Reductions and validation operators.
-    bool isValid() const;
-    bool reduce();
+    //Emptiness predicat. Return false when the clocks zone described is empty.
+    bool empty() const;
 
+    //Reductions operator.
+    bool normalize();
+
+    //Intersection operator.
     DBM intersect(DBM const& dbm2) const;
     //Subset operators
     bool operator<(DBM const& dbm2) const;
