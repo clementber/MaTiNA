@@ -110,14 +110,14 @@ bool DBM::empty() const{
   for(int i = 0; i< length; i++){
     //Verification of the diagonal values.
     if(matrice[i][i] != zero)
-      return false;
+      return true;
     //Bounds of clocks values are positive. Don't need to test maximum bound.
     //(The minimal bound of a clock c_i is -1*matrice[0][i])
     if (zero < matrice[0][i])
-      return false;
+      return true;
     //The maximum bound is greater than the minimal one.
     if (matrice[i][0] + matrice[0][i] < zero)
-      return false;
+      return true;
   }
   //Check if the relation between clocks is consistent.
   //(ci-cj ~ matrice_ij, where ~ in {<,<=})
@@ -125,14 +125,14 @@ bool DBM::empty() const{
     for(int j = i+1; j<length; j++){
       //The maximum bound is greater than the minimal one.
       if (matrice[i][j] + matrice[j][i] < zero)
-        return false;
+        return true;
       //Check if the clocks values are consistent with the relation.
       if((matrice[i][0]+matrice[0][j]+matrice[j][i] < zero)
       || (matrice[0][i]+matrice[j][0]+matrice[i][j] < zero))
-        return false;
+        return true;
     }
   }
-  return true;
+  return false;
 }
 
 //Reduction operator. Refine the dbm by reducing the interval
@@ -263,12 +263,19 @@ DBM Transition::accept(string const& event,
   if(!triggered){
     return DBM::fail();
   }
-  //TODO
+  DBM accepted_values = clocks_status.intersect(clocks_constraints);
+  if(accepted_values.empty()) {
+    return DBM.fail();
+  }
+  accepted_values.reset(clocks_to_reset);
+  return accepted_values.intersect(destination->clocks_constraints);
 }
 
-DBM Transition::accept(DBM const& clocks_status){
+vector<DBM> Transition::accept(DBM const& initial_clocks_status,
+                               DBM const& current_clocks_status,
+                               DBM const& final_clocks_status){
   if(! this->triggers.empty()){
-    return DBM::fail();
+    return {};
   }
   //TODO
   //Last check on the token in it's final state.

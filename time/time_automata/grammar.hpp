@@ -132,7 +132,9 @@ namespace automate{
     * given as parameter, only the transition with no triggers can be crossed.
     */
     DBM accept(string const& event, DBM const& clocks_status) const;
-    DBM accept(DBM const& clocks_status) const;
+    vector<DBM> accept(DBM const& initial_clocks_status,
+                       DBM const& current_clocks_status,
+                       DBM const& final_clocks_status) const;
   };
 
   class Automate{
