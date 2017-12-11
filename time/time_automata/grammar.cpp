@@ -170,10 +170,11 @@ DBM DBM::intersect(DBM const& dbm2) const{
     intersection = DBM(*this);
   }
 
-  for(int i = 0; i < dbm2->length;i++)
+  for(int i = 0; i < dbm2->length;i++){
     for(int j = 0; j < dbm2->length; j++){
       intersection.matrice[i][j] = intersection.matrice[i][j].min(dbm2.matrice[i][j]);
     }
+  }
   return intersection;
 }
 
@@ -239,6 +240,7 @@ Transition::Transition(State* const& ori, State* const& dest, vector<string> eve
   DBM dest_constraints(dest->clocks_constraints);
   dest_constraints.maximze(clocks_to_reset);
   clocks_constraints = clocks_constraints.intersect(dest_constraints);
+  clocks_constraints.normalize();
 }
 
 Transition::Transition(State* const& ori, State* const& dest)
@@ -268,18 +270,63 @@ DBM Transition::accept(string const& event,
     return DBM.fail();
   }
   accepted_values.reset(clocks_to_reset);
-  return accepted_values.intersect(destination->clocks_constraints);
+  //Last check on the token in it's final state.
+  DBM output_values = accepted_values.intersect(destination->clocks_constraints);
+  output_values.normalize();
+  return output_values;
 }
 
-vector<DBM> Transition::accept(DBM const& initial_clocks_status,
-                               DBM const& current_clocks_status,
-                               DBM const& final_clocks_status){
+vector<DBM> Transition::accept(DBM initial_clocks_status,
+                               DBM current_clocks_status,
+                               DBM final_clocks_status){
   if(! this->triggers.empty()){
     return {};
   }
-  //TODO
-  //Last check on the token in it's final state.
-  return this->destination->accept(res);
+  if(clocks_constraints.getClocks_number() == 0){
+    return {initial_clocks_status, current_clocks_status, final_clocks_status};
+  }
+  //First : correct the initial and final clocks values by removing the
+  //unreachable from the clocks_constraints.
+  for(int i =1; i< clocks_constraints.length; i++){
+    if(clocks_constraints.matrice[i][0] < initial_clocks_status.matrice[i][0]){
+      final_clocks_status.matrice[i][0] = Borne(final_clocks_status.matrice[i][0].value - initial_clocks_status.matrice[i][0].value + clocks_constraints.matrice[i][0].value , clocks_constraints.matrice[i][0].inclusion);
+      initial_clocks_status.matrice[i][0] = clocks_constraints.matrice[i][0];
+    }
+    if(clocks_constraints.matrice[0]][i] < final_clocks_status.matrice[0][i]){
+      if(initial_clocks_status.matrice[i][0] != 0){
+        initial_clocks_status.matrice[0][i] = Borne(initial_clocks_status.matrice[0][i].value - final_clocks_status.matrice[0][i].value + clocks_constraints.matrice[0][i].value , clocks_constraints.matrice[0][i].inclusion);
+      }
+      final_clocks_status.matrice[0][i] = clocks_constraints.matrice[0][i];
+    }
+    current_clocks_status.matrice[i][0] = current_clocks_status.matrice[i][0].min(clocks_constraints.matrice[i][0]);
+  }
+  if(final_clocks_status.empty() || initial_clocks_status.empty() || current_clocks_status.empty()){
+    return {};
+  }
+  current_clocks_status.normalize();
+  final_clocks_status.normalize();
+  //Generate the projection DBM from the current clocks_status to the final_clocks_status.
+  DBM projection = DBM(current_clocks_status.getClocks_number());
+  for(int i = 1; i < projection.length; i++){
+    projection.matrice[i][0] = final_clocks_status.matrice[i][0];
+    projection.matrice[0][i] = current_clocks_status.matrice[0][i];
+    for(int j = i+1; j < projection.length; j++){
+      projection.matrice[i][j] = current_clocks_status.matrice[i][j].min(final_clocks_status.matrice[i][j]);
+      projection.matrice[j][i] = current_clocks_status.matrice[j][i].min(final_clocks_status.matrice[j][i]);
+    }
+  }
+  //The new current_clocks_status is the intersection of the projection DBM
+  // and the constraint DBM.
+  current_clocks_status = clocks_constraints.intersect(projection);
+  if(current_clocks_status.empty()){
+    return {};
+  }
+  //Reset management
+  //TODO find a way to determine enable waiting time.
+  current_clocks_status.reset(clocks_to_reset);
+
+  //Check if the outgoing clocks_values are accepted in the final state.
+  current_clocks_status = destination->accept(current_clocks_status);
 }
 
 Automate::Automate() = default;

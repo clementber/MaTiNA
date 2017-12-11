@@ -43,9 +43,9 @@ namespace automate{
   * where c1.id == row and c2.id == column and c1-c2 ~ val. (~ in {<, <=}).
   **/
   class DBM{
+  public:
     vector<vector<Bound>> matrice;
     int length;
-  public:
     DBM();
     DBM(DBM dbm);
     DBM(int clocks_number);
@@ -132,9 +132,9 @@ namespace automate{
     * given as parameter, only the transition with no triggers can be crossed.
     */
     DBM accept(string const& event, DBM const& clocks_status) const;
-    vector<DBM> accept(DBM const& initial_clocks_status,
-                       DBM const& current_clocks_status,
-                       DBM const& final_clocks_status) const;
+    vector<DBM> accept(DBM initial_clocks_status,
+                       DBM current_clocks_status,
+                       DBM final_clocks_status) const;
   };
 
   class Automate{
