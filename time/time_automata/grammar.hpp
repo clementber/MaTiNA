@@ -16,9 +16,8 @@ namespace automate{
 
   class Bound{
   public:
-    enum Inclusion {LESS, LESSEQ};
     double value;
-    Inclusion inclusion;
+    int inclusion; //Inclusion level : 0 is <= ; -1 is <
 
     Bound();
     Bound(double value);
@@ -66,7 +65,7 @@ namespace automate{
     bool empty() const;
 
     //Reductions operator.
-    bool normalize();
+    void normalize();
 
     //Intersection operator.
     DBM intersect(DBM const& dbm2) const;
