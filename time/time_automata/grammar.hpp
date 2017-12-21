@@ -13,7 +13,8 @@
 using namespace std;
 
 namespace automate{
-
+  class Automate;
+  class Clock;
   class Bound{
   public:
     double value;
@@ -29,7 +30,7 @@ namespace automate{
     bool operator<(Bound const& bound2) const;
     bool operator<=(Bound const& bound2) const;
     Bound min(Bound const& bound2) const;
-  }
+  };
   /**Differences Bounds Matrice
   * This class is a matrice which contain for each pair of (row,column) the
   * maximal bound of the clocks values substraction row_clockId - cloumn_clockId.
@@ -45,14 +46,19 @@ namespace automate{
   public:
     vector<vector<Bound>> matrice;
     int length;
+
     DBM();
-    DBM(DBM dbm);
+    DBM(DBM const& dbm);
     DBM(int clocks_number);
-    DBM(Automate automate);
+    DBM(Automate autom);
 
     //Return a DBM describing no zone.
-    static DBM fail();
-    int getClocks_number();
+    static DBM fail(){
+      DBM invalid_dbm = DBM();
+      invalid_dbm.matrice[0][0]=-1;
+      return invalid_dbm;
+    }
+    int getClocks_number() const;
 
     //Time modification operators
     void increment(double time_delay);
@@ -72,8 +78,7 @@ namespace automate{
     //Subset operators
     bool operator<(DBM const& dbm2) const;
     bool operator<=(DBM const& dbm2) const;
-
-  }
+  };
 
 
   class Clock{

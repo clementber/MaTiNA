@@ -43,7 +43,7 @@ Bound Bound::min(Bound const& bound2) const{
 }
 
 DBM::DBM():DBM(0){}
-DBM::DBM(DBM source):length(to_copy.length){
+DBM::DBM(DBM const& source):length(source.length){
   for(int i = 0; i < length;i++)
     for(int j = 0; j < length;j++)
       matrice[i][j]=source.matrice[i][j];
@@ -56,15 +56,9 @@ DBM::DBM(int clocks_number):length(clocks_number+1){
     }
   }
 }
-DBM::DBM(Automate automate):DBM(automate.clocks.size()){}
+DBM::DBM(Automate autom):DBM(autom.clocks.size()){}
 
-static DBM DBM::fail(){
-  DBM invalid_dbm = DBM();
-  invalid_dbm.value[0][0]=-1;
-  return invalid_dbm;
-}
-
-int DBM::getClocks_number(){return length-1;}
+int DBM::getClocks_number() const {return length-1;}
 
 //Time modification operators
 void DBM::increment(double time_delay){
@@ -76,7 +70,7 @@ void DBM::increment(double time_delay){
 
 void DBM::reset(vector<Clock*> clks){
   for(Clock* clk : clks){
-    int id = clk->getId()
+    int id = clk->getId();
     matrice[id][0]=Bound(0);
     matrice[0][id]=Bound(0);
     for(int i = 1; i<length; i++){
@@ -91,7 +85,7 @@ void DBM::reset(vector<Clock*> clks){
 //The value of the given clocks became the interval [0,+inf].
 void DBM::maximize(vector<Clock*> clks){
   for(Clock* clk : clks){
-    int id = clk->getId()
+    int id = clk->getId();
     matrice[id][0]=Bound();
     matrice[0][id]=Bound(0);
     for(int i = 1; i<length; i++){
@@ -160,7 +154,7 @@ DBM DBM::intersect(DBM const& dbm2) const{
   if(dbm2.length == 1)
     return *this;
   if(this->length != dbm2.length){
-    cout << "Erreur d'intersection. Les deux DBM n'ont pas le même nombre d'horloge!"
+    cout << "Erreur d'intersection. Les deux DBM n'ont pas le même nombre d'horloge!";
     return DBM::fail();
   }
   DBM intersection;
@@ -170,8 +164,8 @@ DBM DBM::intersect(DBM const& dbm2) const{
     intersection = DBM(*this);
   }
 
-  for(int i = 0; i < dbm2->length;i++){
-    for(int j = 0; j < dbm2->length; j++){
+  for(int i = 0; i < dbm2.length;i++){
+    for(int j = 0; j < dbm2.length; j++){
       intersection.matrice[i][j] = intersection.matrice[i][j].min(dbm2.matrice[i][j]);
     }
   }
@@ -182,7 +176,7 @@ DBM DBM::intersect(DBM const& dbm2) const{
 bool DBM::operator<(DBM const& dbm2) const{
   if(dbm2.length==1) return true;
   if(dbm2.length != this->length){
-    cout << "Erreur Subset. Les deux DBM n'ont pas le même nombre d'horloge!"
+    cout << "Erreur Subset. Les deux DBM n'ont pas le même nombre d'horloge!";
     return false;
   }
   for(int i = 0; i < length; i++)
@@ -194,7 +188,7 @@ bool DBM::operator<(DBM const& dbm2) const{
 bool DBM::operator<=(DBM const& dbm2) const{
   if(dbm2.length==1) return true;
   if(dbm2.length != this->length){
-    cout << "Erreur Subset. Les deux DBM n'ont pas le même nombre d'horloge!"
+    cout << "Erreur Subset. Les deux DBM n'ont pas le même nombre d'horloge!";
     return false;
   }
   for(int i = 0; i < length; i++)
@@ -240,7 +234,7 @@ Transition::Transition(State* const& ori, State* const& dest, vector<string> eve
    * constraints before we reset the clock.
    */
   DBM dest_constraints(dest->clocks_constraints);
-  dest_constraints.maximze(clocks_to_reset);
+  dest_constraints.maximize(clocks_to_reset);
   clocks_constraints = clocks_constraints.intersect(dest_constraints);
   clocks_constraints.normalize();
 }
@@ -269,7 +263,7 @@ DBM Transition::accept(string const& event,
   }
   DBM accepted_values = clocks_status.intersect(clocks_constraints);
   if(accepted_values.empty()) {
-    return DBM.fail();
+    return DBM::fail();
   }
   accepted_values.reset(clocks_to_reset);
   //Last check on the token in it's final state.
@@ -280,7 +274,7 @@ DBM Transition::accept(string const& event,
 
 vector<DBM> Transition::accept(DBM initial_clocks_status,
                                DBM current_clocks_status,
-                               DBM final_clocks_status){
+                               DBM final_clocks_status)const{
   if(! this->triggers.empty()){
     return {};
   }
@@ -293,7 +287,7 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
         final_clocks_status.matrice[i][0] = Bound(final_clocks_status.matrice[i][0].value - initial_clocks_status.matrice[i][0].value + clocks_constraints.matrice[i][0].value , clocks_constraints.matrice[i][0].inclusion);
         initial_clocks_status.matrice[i][0] = clocks_constraints.matrice[i][0];
       }
-      if(clocks_constraints.matrice[0]][i] < final_clocks_status.matrice[0][i]){
+      if(clocks_constraints.matrice[0][i] < final_clocks_status.matrice[0][i]){
         if(initial_clocks_status.matrice[i][0] != Bound(0)){
           initial_clocks_status.matrice[0][i] = Bound(initial_clocks_status.matrice[0][i].value - final_clocks_status.matrice[0][i].value + clocks_constraints.matrice[0][i].value , clocks_constraints.matrice[0][i].inclusion);
         }
@@ -301,7 +295,7 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
       }
       current_clocks_status.matrice[i][0] = current_clocks_status.matrice[i][0].min(clocks_constraints.matrice[i][0]);
     }
-    if(current_clocks_status.empty()|| final_clocks_status.empty() || initial_clocks_status.empty()){
+    if(current_clocks_status.empty()||final_clocks_status.empty()||initial_clocks_status.empty()){
       return {};
     }
     current_clocks_status.normalize();
@@ -327,7 +321,7 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
     //current_clocks_values.
     for(int i=1; i<final_clocks_status.length; i++){
       for(int j=i+1; j<final_clocks_status.length;j++){
-        final_clocks_status[i][j] = final_clocks_status[i][j].min(current_clocks_status[i][j]);
+        final_clocks_status.matrice[i][j] = final_clocks_status.matrice[i][j].min(current_clocks_status.matrice[i][j]);
       }
     }
     //The unreachable values in the final_clocks_status should be removed from the
@@ -352,12 +346,12 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
   if(!clocks_to_reset.empty()){
     //Calculate the final values for the reseted clocks.
     Bound max_available_time = Bound(final_clocks_status.matrice[1][0].value - initial_clocks_status.matrice[1][0].value, final_clocks_status.matrice[1][0].inclusion - initial_clocks_status.matrice[1][0].inclusion);
-    Bound max_remaining_time = Bound(final_clocks_status.matice[1][0].value - current_clocks_status.matrice[0][1].value, final_clocks_status.matice[1][0].inclusion - current_clocks_status.matrice[0][1].inclusion);
-    Bound min_remaining_time = Bound(final_clocks_status.matice[0][1].value - current_clocks_status.matrice[1][0].value, final_clocks_status.matice[0][1].inclusion - current_clocks_status.matrice[1][0].inclusion);
-    for(int i=2; i< final_clocks_status.matrice.length; i++){
+    Bound max_remaining_time = Bound(final_clocks_status.matrice[1][0].value - current_clocks_status.matrice[0][1].value, final_clocks_status.matrice[1][0].inclusion - current_clocks_status.matrice[0][1].inclusion);
+    Bound min_remaining_time = Bound(final_clocks_status.matrice[0][1].value - current_clocks_status.matrice[1][0].value, final_clocks_status.matrice[0][1].inclusion - current_clocks_status.matrice[1][0].inclusion);
+    for(int i=2; i< final_clocks_status.length; i++){
       max_available_time = max_available_time.min(Bound(final_clocks_status.matrice[i][0].value - initial_clocks_status.matrice[i][0].value, final_clocks_status.matrice[i][0].inclusion - initial_clocks_status.matrice[i][0].inclusion));
-      max_remaining_time = max_remaining_time.min(final_clocks_status.matice[i][0] + current_clocks_status.matrice[0][i]);
-      Bound candidate_min_remaining_time = Bound((-1*final_clocks_status.matice[0][1].value) - current_clocks_status.matrice[1][0].value, (-1*final_clocks_status.matice[0][1].inclusion) - current_clocks_status.matrice[1][0].inclusion);
+      max_remaining_time = max_remaining_time.min(final_clocks_status.matrice[i][0] + current_clocks_status.matrice[0][i]);
+      Bound candidate_min_remaining_time = Bound((-1*final_clocks_status.matrice[0][1].value) - current_clocks_status.matrice[1][0].value, (-1*final_clocks_status.matrice[0][1].inclusion) - current_clocks_status.matrice[1][0].inclusion);
       min_remaining_time = min_remaining_time<candidate_min_remaining_time?candidate_min_remaining_time:min_remaining_time;
     }
     max_remaining_time = max_remaining_time.min(max_available_time);
@@ -370,10 +364,10 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
 
     //Adjust the final and initial clocks bounds.
     for(Clock* clk: clocks_to_reset){
-      initial_clocks_status.matrice[clk->id][0] = Bound(0);
-      initial_clocks_status.matrice[0][clk->id] = Bound(0);
-      final_clocks_status.matrice[clk->id][0] = max_remaining_time;
-      final_clocks_status.matrice[0][clk->id] = min_remaining_time;
+      initial_clocks_status.matrice[clk->getId()][0] = Bound(0);
+      initial_clocks_status.matrice[0][clk->getId()] = Bound(0);
+      final_clocks_status.matrice[clk->getId()][0] = max_remaining_time;
+      final_clocks_status.matrice[0][clk->getId()] = min_remaining_time;
     }
     //Calculate the relation of the final zone.
     for(int i=1; i<current_clocks_status.length; i++){
@@ -433,7 +427,7 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
       initial_clocks_status.matrice[i][0].inclusion = final_clocks_status.matrice[i][0].inclusion;
     }
   }
-  
+
   return {initial_clocks_status,current_clocks_status,final_clocks_status};
 }
 
