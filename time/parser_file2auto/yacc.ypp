@@ -43,9 +43,9 @@
 
 %type <automate::Automate*> autom
 %type <std::vector<std::string>> names list_name clocks
-%type <std::map<string, automate::Interval>> conditions
-%type <std::pair<string, automate::Interval>> condition
-%type <std::pair<double,bool>> borne_inf borne_sup
+%type <automate::DBM> conditions
+%type <std::pair<automate::Clock*, std::pair<automate::Bound,automate::Bound>>> condition
+%type <Bound> borne_inf borne_sup
 
 %token LBALISE COMMA LCROCHET RCROCHET LACOLADE RACOLADE EGALE
 %token START_NODE END_NODE NLINE DOUBLE_SLASH NONE
@@ -181,52 +181,40 @@ conditions :
     $$ = $1;
   }
   | %empty {
-    std::map<string, Interval> res;
-    $$ = res;
+    $$ = DBM();
   }
 
 condition :
    LCROCHET borne_inf NAME borne_sup RCROCHET {
-     Interval interval($2.first,$2.second,$4.first,$4.second);
-     generate_automate->find_or_create_clock($3);
-     std::pair<string,Interval> res($3, interval);
-     $$= res;
+     Clock* clk = generate_automate->find_or_create_clock($3);
+     $$= std::pair<Clock*,std::pair<Bound,Bound>>(clk, std::pair<Bound,Bound>($2,$4));
    }
   |LCROCHET NAME borne_sup RCROCHET {
-    Interval interval(0,true,$3.first,$3.second);
-    generate_automate->find_or_create_clock($2);
-    std::pair<string,Interval> res($2, interval);
-    $$= res;
+    Clock* clk = generate_automate->find_or_create_clock($2);
+    $$= std::pair<Clock*,std::pair<Bound,Bound>>(clk, std::pair<Bound,Bound>(Bound(0),$3));
   }
   |LCROCHET NAME EGALE NUMBER RCROCHET {
-    Interval interval($4,$4);
-    generate_automate->find_or_create_clock($2);
-    std::pair<string,Interval> res($2, interval);
-    $$= res;
+    Clock* clk = generate_automate->find_or_create_clock($2);
+    $$= std::pair<Clock*,std::pair<Bound,Bound>>(clk, std::pair<Bound,Bound>($4,$4));
    }
 
 borne_inf :
    NUMBER LBALISE {
-     std::pair<double,bool> inf($1,false);
-     $$= inf;
+     $$= Bound(-1*$1, -1);
    }
   |NUMBER LBALISE EGALE {
-    std::pair<double,bool> inf($1,true);
-    $$= inf;
+    $$= Bound(-1*$1, 0);
   }
 
 borne_sup :
   LBALISE NUMBER {
-    std::pair<double,bool> sup($2,false);
-    $$= sup;
+    $$= Bound($2, -1);
   }
   |LBALISE EGALE NUMBER {
-   std::pair<double,bool> sup($3,true);
-   $$= sup;
+    $$= Bound($3, 0);
   }
   |%empty{
-   std::pair<double,bool> sup(std::numeric_limits<double>::max(),true);
-   $$= sup;
+    $$= Bound(); //Positiv infiny
   }
 
 
