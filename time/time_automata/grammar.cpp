@@ -198,7 +198,7 @@ bool DBM::operator<=(DBM const& dbm2) const{
   return true;
 }
 
-Clock::Clock(string const& p_name, int id): name(p_name), id(id){}
+Clock::Clock(string const& p_name, int id): id(id),name(p_name){}
 Clock::~Clock() = default;
 
 int Clock::getId(){
