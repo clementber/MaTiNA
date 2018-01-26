@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include "../time_automata/grammar.hpp"
-#include "../time_automata/toDot.hpp"
+//#include "../time_automata/toDot.hpp"
 #include "parsingDriver.hpp"
 
 using namespace std;
@@ -16,6 +16,9 @@ int main(int argc, char *argv[]){
   automate::Automate*input_autom = new automate::Automate();
   int res = parser.parse (input_autom, argv[1]);
   cout << "Value returned by parse : " << res <<"\n";
+  cout << "Clocks : \n";
+  for(automate::Clock cl : input_autom->clocks)
+    cout << "\t"<< cl.name << " : " << cl.getId() << "\n";
   cout << "Number of state : " << input_autom->states.size() << "\nTheir names : \n";
   for(automate::State st : input_autom->states){
     cout << "\t" << st.id << "\n";
@@ -24,23 +27,31 @@ int main(int argc, char *argv[]){
   for(automate::State & st : input_autom->states){
     for(automate::Transition & trans : input_autom->transitions[&st]){
       cout << "\t" << trans.origine->id << "->" << trans.destination->id << "\n";
-      for(pair<string,Interval> elmt : trans.clocks_constraints){
-        cout << "\t\t" << elmt.first << " " << elmt.second.borne_inf << "," << elmt.second.borne_sup << "\n";
+      if(trans.clocks_constraints.length!=0){
+        cout << "\t\tThe clocks_constraints DBM :" <<"\n";
+        for(int i=0; i<=trans.clocks_constraints.length;i++){
+          cout << "\t\t\t";
+          for(int j=0; j<=trans.clocks_constraints.length;j++){
+            cout << "(" << trans.clocks_constraints.matrice[i][j].value;
+            cout << "," << trans.clocks_constraints.matrice[i][j].inclusion <<")";
+            cout << "\t";
+          }
+          cout << "\n";
+        }
       }
-      for(string clock_name : trans.clocks_to_reset){
-        cout << "\t\t" << clock_name <<"\n";
+      if(! trans.clocks_to_reset.empty()){
+        cout << "\t\tClocks to reset : ";
+        for(Clock* clock : trans.clocks_to_reset){
+          cout << clock->name << " : " << clock->getId() <<"\t";
+        }
       }
     }
-  }
-
-  cout << "clocks names : \n";
-  for(automate::Clock cl : input_autom->clocks)
-    cout << "\t"<< cl.name << "\n";
+  }/*
   if(argc>=3){
     ofstream output(argv[2]);
     convert_to_dot(input_autom, output);
     output.close();
-  }
+  }*/
   delete (input_autom);
   return 0;
 }
