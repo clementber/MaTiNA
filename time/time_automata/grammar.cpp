@@ -54,9 +54,23 @@ DBM::DBM(int clocks_number):length(clocks_number+1){
     }
   }
 }
-DBM::DBM(Automate autom):DBM(autom.clocks.size()){}
+DBM::DBM(Automate autom):length(autom.clocks.size()+1){
+  for(int i=0;i<length;i++){
+    matrice.push_back(vector<Bound>(length,Bound(0)));
+  }
+}
 
 int DBM::getClocks_number() const {return length-1;}
+
+void DBM::addClock(){
+  matrice[0].push_back(Bound(0));
+  for(int i = 1; i < length; i++){
+    matrice[i].push_back(Bound());
+  }
+  length++;
+  matrice.push_back(vector<Bound>(length,Bound()));
+  matrice[length-1][length-1] = Bound(0);
+}
 
 //Time modification operators
 void DBM::increment(double time_delay){
@@ -132,7 +146,7 @@ bool DBM::empty() const{
 //PRECONDITION : this->isValid()==true.
 void DBM::normalize(){
   for(int i=1; i<length;i++){
-    for(int j=1; i<length;j++){
+    for(int j=1; j<length;j++){
       if(i==j) continue;
       //Reduce the interval of each clocks depending on the relation on it
       matrice[0][i]=matrice[0][i].min(matrice[0][j]+matrice[j][i]);
@@ -232,7 +246,9 @@ Transition::Transition(State* const& ori, State* const& dest, vector<string> eve
    * constraints before we reset the clock.
    */
   DBM dest_constraints(dest->clocks_constraints);
-  dest_constraints.maximize(clocks_to_reset);
+  if(dest_constraints.getClocks_number()>0){
+    dest_constraints.maximize(clocks_to_reset);
+  }
   clocks_constraints = clocks_constraints.intersect(dest_constraints);
   clocks_constraints.normalize();
 }
@@ -447,6 +463,19 @@ Clock* Automate::find_or_create_clock(string name){
   this->clocks.push_back(new_clock);
   vector<Clock>::iterator ite(this->clocks.end());
   ite--;
+
+  //Increase all non-empty DBM-size
+  for(State & state : states){
+    if(state.clocks_constraints.getClocks_number()!=0){
+      state.clocks_constraints.addClock();
+    }
+    for(Transition & trans : transitions[&state]){
+      if(trans.clocks_constraints.getClocks_number()!=0){
+        trans.clocks_constraints.addClock();
+      }
+    }
+  }
+
   return &(*ite);
 }
 State* Automate::getState(string state_name){

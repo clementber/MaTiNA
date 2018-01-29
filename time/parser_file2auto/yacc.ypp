@@ -191,7 +191,11 @@ list_name :
 
 conditions :
    conditions condition {
-     //TODO won't work!! Il va y avoir un out of bound exception -> découverte de nouvelles horloges. Tu aurais du faire un ast grosse feignasse!!
+    if($1.getClocks_number() == 0){
+      $1 = DBM(generate_automate->clocks.size());
+    }else if($1.getClocks_number() < generate_automate->clocks.size()){
+      $1.addClock();
+    }
     $1.matrice[$2.first->getId()][0] = $1.matrice[$2.first->getId()][0].min($2.second.second);
     $1.matrice[0][$2.first->getId()] = $1.matrice[0][$2.first->getId()].min($2.second.first);
     $$ = $1;

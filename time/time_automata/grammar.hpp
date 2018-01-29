@@ -59,6 +59,7 @@ namespace automate{
       return invalid_dbm;
     }
     int getClocks_number() const;
+    void addClock();
 
     //Time modification operators
     void increment(double time_delay);
