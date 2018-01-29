@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include "../time_automata/grammar.hpp"
-//#include "../time_automata/toDot.hpp"
+#include "../time_automata/toDot.hpp"
 #include "parsingDriver.hpp"
 
 using namespace std;
@@ -29,9 +29,9 @@ int main(int argc, char *argv[]){
       cout << "\t" << trans.origine->id << "->" << trans.destination->id << "\n";
       if(trans.clocks_constraints.length!=0){
         cout << "\t\tThe clocks_constraints DBM :" <<"\n";
-        for(int i=0; i<=trans.clocks_constraints.length;i++){
+        for(int i=0; i<trans.clocks_constraints.length;i++){
           cout << "\t\t\t";
-          for(int j=0; j<=trans.clocks_constraints.length;j++){
+          for(int j=0; j<trans.clocks_constraints.length;j++){
             cout << "(" << trans.clocks_constraints.matrice[i][j].value;
             cout << "," << trans.clocks_constraints.matrice[i][j].inclusion <<")";
             cout << "\t";
@@ -46,12 +46,12 @@ int main(int argc, char *argv[]){
         }
       }
     }
-  }/*
+  }
   if(argc>=3){
     ofstream output(argv[2]);
     convert_to_dot(input_autom, output);
     output.close();
-  }*/
+  }
   delete (input_autom);
   return 0;
 }

@@ -24,10 +24,10 @@ void convert_to_dot(Automate* autom, ostream& output){
     }
     output << "][label=\"";
     output << state.id;
-    if(!state.clocks_constraints.empty()){
+    if(!(state.clocks_constraints.getClocks_number() == 0 || state.clocks_constraints.empty())){
       output << " ";
-      for(auto interv : state.clocks_constraints){
-        output << "{" << interv.first << ":[" << interv.second.borne_inf << "," << interv.second.borne_sup <<"]}";
+      for(Clock clk : autom->clocks){
+        output << "{" << clk.name << ":[" << (-1*state.clocks_constraints.matrice[0][clk.getId()].value) << "," << state.clocks_constraints.matrice[clk.getId()][0].value <<"]}";
       }
     }
     output << "\"]\n";
@@ -44,17 +44,17 @@ void convert_to_dot(Automate* autom, ostream& output){
           output << "," << trans.triggers[i];
         }
       }
-      if(!trans.clocks_constraints.empty()){
+      if(!(trans.clocks_constraints.getClocks_number() == 0 || trans.clocks_constraints.empty())){
         output << "\\n";
-        for(auto interv : trans.clocks_constraints){
-          output << "{" << interv.first << ":[" << interv.second.borne_inf << "," << interv.second.borne_sup <<"]}";
+        for(Clock clk : autom->clocks){
+          output << "{" << clk.name << ":[" << (-1*trans.clocks_constraints.matrice[0][clk.getId()].value) << "," << trans.clocks_constraints.matrice[clk.getId()][0].value <<"]}";
         }
       }
       if(!trans.clocks_to_reset.empty()){
         output << "\\n";
         output << trans.clocks_to_reset[0] << ":=0";
         for(unsigned int i =1; i<trans.clocks_to_reset.size(); i++){
-          output << "," << trans.clocks_to_reset[i] << ":=0";
+          output << "," << trans.clocks_to_reset[i]->name << ":=0";
         }
       }
       output << "\"]\n";

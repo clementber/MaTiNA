@@ -44,15 +44,13 @@ Bound Bound::min(Bound const& bound2) const{
 
 DBM::DBM():DBM(0){}
 DBM::DBM(DBM const& source):length(source.length){
-  for(int i = 0; i < length;i++)
-    for(int j = 0; j < length;j++)
-      matrice[i][j]=source.matrice[i][j];
+  matrice = vector<vector<Bound>>(source.matrice);
 }
 DBM::DBM(int clocks_number):length(clocks_number+1){
   for(int i = 0; i<= clocks_number; i++){
-    matrice.push_back(std::vector<Bound>(clocks_number+1));
+    matrice.push_back(std::vector<Bound>());
     for(int j=0; j<= clocks_number; j++){
-      matrice[i][j]=((i==j||i==0)?Bound(0):Bound());
+      matrice[i].push_back((i==j||i==0)?Bound(0):Bound());
     }
   }
 }

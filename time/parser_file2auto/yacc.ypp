@@ -191,6 +191,7 @@ list_name :
 
 conditions :
    conditions condition {
+     //TODO won't work!! Il va y avoir un out of bound exception -> découverte de nouvelles horloges. Tu aurais du faire un ast grosse feignasse!!
     $1.matrice[$2.first->getId()][0] = $1.matrice[$2.first->getId()][0].min($2.second.second);
     $1.matrice[0][$2.first->getId()] = $1.matrice[0][$2.first->getId()].min($2.second.first);
     $$ = $1;
