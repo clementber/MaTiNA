@@ -1,4 +1,5 @@
 #include "toDot.hpp"
+#include <limits>
 
 using namespace std;
 using namespace automate;
@@ -27,7 +28,12 @@ void convert_to_dot(Automate* autom, ostream& output){
     if(!(state.clocks_constraints.getClocks_number() == 0 || state.clocks_constraints.empty())){
       output << " ";
       for(Clock clk : autom->clocks){
-        output << "{" << clk.name << ":[" << (-1*state.clocks_constraints.matrice[0][clk.getId()].value) << "," << state.clocks_constraints.matrice[clk.getId()][0].value <<"]}";
+        output << "{" << clk.name << ":[";
+        double value = state.clocks_constraints.matrice[0][clk.getId()].value;
+        output << (value==0?"0":to_string(-1*value)) << "," ;
+        value = state.clocks_constraints.matrice[clk.getId()][0].value;
+        output<<(value==numeric_limits<double>::max()?"\\inf":to_string(value));
+        output << "]}";
       }
     }
     output << "\"]\n";
@@ -47,12 +53,17 @@ void convert_to_dot(Automate* autom, ostream& output){
       if(!(trans.clocks_constraints.getClocks_number() == 0 || trans.clocks_constraints.empty())){
         output << "\\n";
         for(Clock clk : autom->clocks){
-          output << "{" << clk.name << ":[" << (-1*trans.clocks_constraints.matrice[0][clk.getId()].value) << "," << trans.clocks_constraints.matrice[clk.getId()][0].value <<"]}";
+          output << "{" << clk.name << ":[";
+          double value = trans.clocks_constraints.matrice[0][clk.getId()].value;
+          output << (value==0?"0":to_string(-1*value)) << ",";
+          value = trans.clocks_constraints.matrice[clk.getId()][0].value;
+          output << (value==numeric_limits<double>::max()? "\\inf":to_string(value));
+          output << "]}";
         }
       }
       if(!trans.clocks_to_reset.empty()){
         output << "\\n";
-        output << trans.clocks_to_reset[0] << ":=0";
+        output << trans.clocks_to_reset[0]->name << ":=0";
         for(unsigned int i =1; i<trans.clocks_to_reset.size(); i++){
           output << "," << trans.clocks_to_reset[i]->name << ":=0";
         }

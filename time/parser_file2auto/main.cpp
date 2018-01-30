@@ -44,6 +44,7 @@ int main(int argc, char *argv[]){
         for(Clock* clock : trans.clocks_to_reset){
           cout << clock->name << " : " << clock->getId() <<"\t";
         }
+        cout << "\n";
       }
     }
   }
