@@ -11,53 +11,32 @@ using namespace recognizer;
 //---------------------Token Constructor------------------------------------//
 //--------------------------------------------------------------------------//
 Token::Token(Automate* automate){
-  for(Clock clock : automate->clocks){
-    clocks_values.push_back(clock);
-  }
-  for(Clock& clock : clocks_values){
-    clock.value = 0;
-  }
+  initial_values = DBM(*automate);
+  current_values = initial_values;
+  final_values = initial_values;
 }
-Token::Token(vector<string> clocks_names){
-  for(string name : clocks_names){
-    clocks_values.push_back(Clock(name));
-  }
-  for(Clock& clock : clocks_values){
-    clock.value = 0;
-  }
-}
-Token::Token(vector<Clock> clocks): clocks_values(clocks){}
-Token::Token(Token const& token){
-  for(Clock clock : token.clocks_values){
-    clocks_values.push_back(clock);
-  }
-}
+Token::Token(Token const& token) = default;
 Token::~Token() = default;
 
 //--------------------------------------------------------------------------//
 //--------------------------------Methods-----------------------------------//
 //--------------------------------------------------------------------------//
 void Token::increment(double time_elapse){
-  for(Clock& clock : clocks_values){
-    clock.increment(time_elapse);
-  }
+  final_values.increment(time_elapse);
 }
 
 void Token::apply_increment(){
-  for(Clock & clk : clocks_values){
-    clk.apply_increment();
-  }
+  initial_values = final_values;
+  current_values = final_values;
 }
 
 
 bool Token::operator<=(Token const& tok2){
-  if(this->clocks_values.size() != tok2.clocks_values.size()){
+  if(!(this->final_values <= tok2.final_values)){
     return false;
   }
-  for(int i = 0; i<this->clocks_values.size(); i++){
-    if(! (this->clocks_values[i]<=tok2.clocks_values[i])){
-      return false;
-    }
+  if(this->current_values.project(this->final_values)<=tok2.current_values.project(tok2.final_values)){
+    return false;
   }
   return true;
 }
@@ -65,9 +44,6 @@ bool Token::operator<=(Token const& tok2){
 //---------------------------End of class Token-------------------------------//
 
 Checker::Checker(Automate* modele_automate) : modele(modele_automate) {
-  if(modele->clocks.empty()){
-    modele->find_or_create_clock("c");
-  }
   map_tokens[modele->start].push_back(Token(modele));
   this->input(0.);
 }

@@ -74,6 +74,10 @@ namespace automate{
     //Reductions operator.
     void normalize();
 
+    //Projection operator : Generate the zone containing every reachable values
+    //between the current DBM and the destination.
+    DBM DBM::project(DBM const& destination) const
+
     //Intersection operator.
     DBM intersect(DBM const& dbm2) const;
     //Subset operators

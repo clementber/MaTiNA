@@ -184,6 +184,19 @@ DBM DBM::intersect(DBM const& dbm2) const{
   return intersection;
 }
 
+DBM DBM::project(DBM const& destination) const{
+  DBM projection = DBM(this->getClocks_number());
+  for(int i = 1; i < projection.length; i++){
+    projection.matrice[i][0] = destination.matrice[i][0];
+    projection.matrice[0][i] = this->matrice[0][i];
+    for(int j = i+1; j < projection.length; j++){
+      projection.matrice[i][j] = this->matrice[i][j].min(destination.matrice[i][j]);
+      projection.matrice[j][i] = this->matrice[j][i].min(destination.matrice[j][i]);
+    }
+  }
+  return projection;
+}
+
 //Subset operators
 bool DBM::operator<(DBM const& dbm2) const{
   if(dbm2.length==1) return true;
@@ -218,7 +231,7 @@ int Clock::getId(){
 }
 
 void Clock::print() const{
-  //TODO
+  cout << this->name << " : " << this->getId();
 }
 
 State::State(string identifiant,
@@ -315,15 +328,7 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
     current_clocks_status.normalize();
     final_clocks_status.normalize();
     //Generate the projection DBM (all reachable value) from the current clocks_status to the final_clocks_status.
-    DBM projection = DBM(current_clocks_status.getClocks_number());
-    for(int i = 1; i < projection.length; i++){
-      projection.matrice[i][0] = final_clocks_status.matrice[i][0];
-      projection.matrice[0][i] = current_clocks_status.matrice[0][i];
-      for(int j = i+1; j < projection.length; j++){
-        projection.matrice[i][j] = current_clocks_status.matrice[i][j].min(final_clocks_status.matrice[i][j]);
-        projection.matrice[j][i] = current_clocks_status.matrice[j][i].min(final_clocks_status.matrice[j][i]);
-      }
-    }
+    DBM projection = current_clocks_status.project(final_clocks_status);
     //The accepted values are the intersection of the projection DBM
     // and the constraint DBM.
     current_clocks_status = clocks_constraints.intersect(projection);
