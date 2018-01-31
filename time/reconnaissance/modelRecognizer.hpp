@@ -18,6 +18,7 @@ namespace recognizer{
     //---------------------------Constructor----------------------------------//
     //------------------------------------------------------------------------//
     Token(Automate* automate);
+    Token(DBM initial_v,DBM current_v,DBM final_v);
     Token(Token const& token);
     ~Token();
 

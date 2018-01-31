@@ -226,12 +226,12 @@ bool DBM::operator<=(DBM const& dbm2) const{
 Clock::Clock(string const& p_name, int id): id(id),name(p_name){}
 Clock::~Clock() = default;
 
-int Clock::getId(){
+int Clock::getId() const{
   return id;
 }
 
 void Clock::print() const{
-  cout << this->name << " : " << this->getId();
+  cout << this->name << " : " << this->id;
 }
 
 State::State(string identifiant,
@@ -365,14 +365,15 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
   if(!clocks_to_reset.empty()){
     //Calculate the final values for the reseted clocks.
     Bound max_available_time = Bound(final_clocks_status.matrice[1][0].value - initial_clocks_status.matrice[1][0].value, final_clocks_status.matrice[1][0].inclusion - initial_clocks_status.matrice[1][0].inclusion);
-    Bound max_remaining_time = Bound(final_clocks_status.matrice[1][0].value - current_clocks_status.matrice[0][1].value, final_clocks_status.matrice[1][0].inclusion - current_clocks_status.matrice[0][1].inclusion);
-    Bound min_remaining_time = Bound(final_clocks_status.matrice[0][1].value - current_clocks_status.matrice[1][0].value, final_clocks_status.matrice[0][1].inclusion - current_clocks_status.matrice[1][0].inclusion);
+    Bound max_remaining_time = final_clocks_status.matrice[1][0] + current_clocks_status.matrice[0][1];
+    Bound min_remaining_time = Bound((-1*final_clocks_status.matrice[0][1].value) - current_clocks_status.matrice[1][0].value, (-1*final_clocks_status.matrice[0][1].inclusion) - current_clocks_status.matrice[1][0].inclusion);
     for(int i=2; i< final_clocks_status.length; i++){
       max_available_time = max_available_time.min(Bound(final_clocks_status.matrice[i][0].value - initial_clocks_status.matrice[i][0].value, final_clocks_status.matrice[i][0].inclusion - initial_clocks_status.matrice[i][0].inclusion));
       max_remaining_time = max_remaining_time.min(final_clocks_status.matrice[i][0] + current_clocks_status.matrice[0][i]);
       Bound candidate_min_remaining_time = Bound((-1*final_clocks_status.matrice[0][1].value) - current_clocks_status.matrice[1][0].value, (-1*final_clocks_status.matrice[0][1].inclusion) - current_clocks_status.matrice[1][0].inclusion);
       min_remaining_time = min_remaining_time<candidate_min_remaining_time?candidate_min_remaining_time:min_remaining_time;
     }
+
     max_remaining_time = max_remaining_time.min(max_available_time);
     if(min_remaining_time < Bound(0)){
       min_remaining_time = Bound(0);
@@ -453,11 +454,11 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
 Automate::Automate() = default;
 
 Automate::Automate(list<State> p_states,vector<Clock> p_clocks,
-         map<State*, vector<Transition>> p_transitions,
-         set<string> p_alphabet,State* p_start,vector<State*> p_endStates) :
-
-         states(p_states), clocks(p_clocks), transitions(p_transitions), alphabet(p_alphabet),
-         start(p_start), endStates(p_endStates) {}
+                   map<State*, vector<Transition>> p_transitions,
+                   set<string> p_alphabet,
+                   State* p_start,vector<State*> p_endStates) :
+     states(p_states), clocks(p_clocks), transitions(p_transitions),
+     alphabet(p_alphabet), start(p_start), endStates(p_endStates) {}
 Automate::~Automate() = default;
 Clock* Automate::find_or_create_clock(string name){
   for(Clock & existing_clock : this->clocks){

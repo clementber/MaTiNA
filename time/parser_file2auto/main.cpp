@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <limits>
 #include "../time_automata/grammar.hpp"
 #include "../time_automata/toDot.hpp"
 #include "parsingDriver.hpp"
@@ -32,7 +33,12 @@ int main(int argc, char *argv[]){
         for(int i=0; i<trans.clocks_constraints.length;i++){
           cout << "\t\t\t";
           for(int j=0; j<trans.clocks_constraints.length;j++){
-            cout << "(" << trans.clocks_constraints.matrice[i][j].value;
+            double value = trans.clocks_constraints.matrice[i][j].value;
+            cout << "(";
+            if(value == numeric_limits<double>::max())
+              cout<< "inf";
+            else
+              cout << value;
             cout << "," << trans.clocks_constraints.matrice[i][j].inclusion <<")";
             cout << "\t";
           }
@@ -42,7 +48,7 @@ int main(int argc, char *argv[]){
       if(! trans.clocks_to_reset.empty()){
         cout << "\t\tClocks to reset : ";
         for(Clock* clock : trans.clocks_to_reset){
-          cout << clock->name << " : " << clock->getId() <<"\t";
+          cout << clock << " : " << clock->getId() <<"\t";
         }
         cout << "\n";
       }

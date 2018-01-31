@@ -76,7 +76,7 @@ namespace automate{
 
     //Projection operator : Generate the zone containing every reachable values
     //between the current DBM and the destination.
-    DBM DBM::project(DBM const& destination) const
+    DBM project(DBM const& destination) const;
 
     //Intersection operator.
     DBM intersect(DBM const& dbm2) const;
@@ -95,7 +95,7 @@ namespace automate{
     Clock(string const& p_name, int id);
     ~Clock();
 
-    int getId();
+    int getId() const;
     void print() const;
   };
 
