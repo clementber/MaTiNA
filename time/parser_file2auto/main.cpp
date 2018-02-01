@@ -18,12 +18,18 @@ int main(int argc, char *argv[]){
   int res = parser.parse (input_autom, argv[1]);
   cout << "Value returned by parse : " << res <<"\n";
   cout << "Clocks : \n";
-  for(automate::Clock cl : input_autom->clocks)
-    cout << "\t"<< cl.name << " : " << cl.getId() << "\n";
+  for(Clock* cl : input_autom->clocks)
+    cout << "\t"<< cl->name << " : " << cl->getId() << "\n";
   cout << "Number of state : " << input_autom->states.size() << "\nTheir names : \n";
   for(automate::State st : input_autom->states){
     cout << "\t" << st.id << "\n";
   }
+  cout << "Initial State : " << input_autom->start->id << "\n";
+  cout << "Final State :";
+  for(State* endState : input_autom->endStates) {
+    cout << " " << endState->id;
+  }
+  cout << "\n";
   cout << "List of edges : " << input_autom->transitions.size() << "\n";
   for(automate::State & st : input_autom->states){
     for(automate::Transition & trans : input_autom->transitions[&st]){
@@ -48,7 +54,7 @@ int main(int argc, char *argv[]){
       if(! trans.clocks_to_reset.empty()){
         cout << "\t\tClocks to reset : ";
         for(Clock* clock : trans.clocks_to_reset){
-          cout << clock << " : " << clock->getId() <<"\t";
+          cout << clock->name << " : " << clock->getId() <<"\t";
         }
         cout << "\n";
       }

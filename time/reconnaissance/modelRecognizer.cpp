@@ -152,9 +152,9 @@ void Checker::print_state(string str){
     cout << "----------------current state : "<<str<<"-----------\n";
   }
   cout << "Clocks name and line number : \n";
-  for(Clock const& clock : modele->clocks){
+  for(Clock* const& clock : modele->clocks){
     cout << "\t";
-    clock.print();
+    clock->print();
     cout << "\n";
   }
   for(State& state : modele->states){

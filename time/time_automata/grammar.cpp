@@ -453,22 +453,24 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
 
 Automate::Automate() = default;
 
-Automate::Automate(list<State> p_states,vector<Clock> p_clocks,
+Automate::Automate(list<State> p_states,vector<Clock*> p_clocks,
                    map<State*, vector<Transition>> p_transitions,
                    set<string> p_alphabet,
                    State* p_start,vector<State*> p_endStates) :
      states(p_states), clocks(p_clocks), transitions(p_transitions),
      alphabet(p_alphabet), start(p_start), endStates(p_endStates) {}
-Automate::~Automate() = default;
-Clock* Automate::find_or_create_clock(string name){
-  for(Clock & existing_clock : this->clocks){
-    if(existing_clock.name == name)
-      return &existing_clock;
+Automate::~Automate() {
+  for(Clock* clk : clocks){
+    delete clk;
   }
-  Clock new_clock(name,this->clocks.size()+1);
+}
+Clock* Automate::find_or_create_clock(string name){
+  for(Clock* existing_clock : this->clocks){
+    if(existing_clock->name == name)
+      return existing_clock;
+  }
+  Clock* new_clock = new Clock(name,this->clocks.size()+1);
   this->clocks.push_back(new_clock);
-  vector<Clock>::iterator ite(this->clocks.end());
-  ite--;
 
   //Increase all non-empty DBM-size
   for(State & state : states){
@@ -482,7 +484,7 @@ Clock* Automate::find_or_create_clock(string name){
     }
   }
 
-  return &(*ite);
+  return new_clock;
 }
 State* Automate::getState(string state_name){
   for(State& state : this->states){

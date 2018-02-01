@@ -4,6 +4,29 @@
 using namespace std;
 using namespace automate;
 
+void output_Clocks_constraint(ostream& output, DBM const& clocks_constraints,
+                              vector<Clock*> const& clocks){
+  for(Clock* clk : clocks){
+    double value_min = clocks_constraints.matrice[0][clk->getId()].value;
+    double value_max = clocks_constraints.matrice[clk->getId()][0].value;
+    if(value_min == 0 && value_max==numeric_limits<double>::max())
+      continue;
+    output << "{" << clk->name << ":[";
+    if(value_min == 0){
+      output << "0";
+    }else{
+      output << (-1*value_min);
+    }
+    output << "," ;
+    if(value_max==numeric_limits<double>::max()){
+      output << "inf";
+    }else{
+      output << value_max;
+    }
+    output << "]}";
+  }
+}
+
 void convert_to_dot(Automate* autom, ostream& output){
   output << "digraph {\n";
   for(State & state : autom->states){
@@ -27,14 +50,7 @@ void convert_to_dot(Automate* autom, ostream& output){
     output << state.id;
     if(!(state.clocks_constraints.getClocks_number() == 0 || state.clocks_constraints.empty())){
       output << " ";
-      for(Clock clk : autom->clocks){
-        output << "{" << clk.name << ":[";
-        double value = state.clocks_constraints.matrice[0][clk.getId()].value;
-        output << (value==0?"0":to_string(-1*value)) << "," ;
-        value = state.clocks_constraints.matrice[clk.getId()][0].value;
-        output<<(value==numeric_limits<double>::max()?"\\inf":to_string(value));
-        output << "]}";
-      }
+      output_Clocks_constraint(output, state.clocks_constraints, autom->clocks);
     }
     output << "\"]\n";
   }
@@ -52,14 +68,7 @@ void convert_to_dot(Automate* autom, ostream& output){
       }
       if(!(trans.clocks_constraints.getClocks_number() == 0 || trans.clocks_constraints.empty())){
         output << "\\n";
-        for(Clock clk : autom->clocks){
-          output << "{" << clk.name << ":[";
-          double value = trans.clocks_constraints.matrice[0][clk.getId()].value;
-          output << (value==0?"0":to_string(-1*value)) << ",";
-          value = trans.clocks_constraints.matrice[clk.getId()][0].value;
-          output << (value==numeric_limits<double>::max()? "\\inf":to_string(value));
-          output << "]}";
-        }
+        output_Clocks_constraint(output, trans.clocks_constraints, autom->clocks);
       }
       if(!trans.clocks_to_reset.empty()){
         output << "\\n";

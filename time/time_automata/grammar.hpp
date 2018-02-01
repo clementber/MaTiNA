@@ -149,7 +149,7 @@ namespace automate{
   class Automate{
   public:
     list<State> states;
-    vector<Clock> clocks;
+    vector<Clock*> clocks;
     map<State*,vector<Transition>> transitions;
     set<string> alphabet;
     State* start;
@@ -157,7 +157,7 @@ namespace automate{
 
       Automate();
       Automate(list<State> p_states,
-               vector<Clock> p_clocks,
+               vector<Clock*> p_clocks,
                map<State*, vector<Transition>> p_transitions,
                set<string> p_alphabet,
                State* p_start,
