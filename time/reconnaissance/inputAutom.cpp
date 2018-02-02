@@ -54,6 +54,6 @@ int main(int argc, char**argv){
     str = "";
   }
   cout << checker.check()<<"\n";
-
+  delete input_autom;
   return 0;
 }

@@ -27,7 +27,8 @@ void convert_to_dot(Automate* autom, ostream& output){
     if(!state.clocks_constraints.empty()){
       output << " ";
       for(auto interv : state.clocks_constraints){
-        output << "{" << interv.first << ":[" << interv.second.borne_inf << "," << interv.second.borne_sup <<"]}";
+        output << "{" << interv.first << ":[" << interv.second.borne_inf;
+        output << "," << interv.second.borne_sup <<"]}";
       }
     }
     output << ">]\n";

@@ -22,7 +22,7 @@ namespace automate{
 
     Bound();
     Bound(double value);
-    Bound(double value, bool included);
+    Bound(double value, int included);
 
     Bound operator+(Bound const& bound2) const;
     bool operator==(Bound const& bound2) const;
@@ -50,7 +50,7 @@ namespace automate{
     DBM();
     DBM(DBM const& dbm);
     DBM(int clocks_number);
-    DBM(Automate autom);
+    DBM(Automate const& autom);
 
     //Return a DBM describing no zone.
     static DBM fail(){

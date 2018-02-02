@@ -38,7 +38,7 @@ bool Token::operator<=(Token const& tok2){
   if(!(this->final_values <= tok2.final_values)){
     return false;
   }
-  if(this->current_values.project(this->final_values)<=tok2.current_values.project(tok2.final_values)){
+  if(!(this->current_values.project(this->final_values)<=tok2.current_values.project(tok2.final_values))) {
     return false;
   }
   return true;
@@ -152,9 +152,9 @@ void Checker::print_state(string str){
     cout << "----------------current state : "<<str<<"-----------\n";
   }
   cout << "Clocks name and line number : \n";
-  for(Clock* const& clock : modele->clocks){
+  for(Clock* const& clk : modele->clocks){
     cout << "\t";
-    clock->print();
+    clk->print();
     cout << "\n";
   }
   for(State& state : modele->states){

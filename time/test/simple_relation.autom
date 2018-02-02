@@ -8,10 +8,5 @@ q5 #E
 q0 q1 #N c1 [ 1 < c1 <= 3]
 q1 q2 a
 q2 q3 #N c2 [4 < c2]
-q3 q4 a c1
-q4 q5 #N c2
-q0 q1 #N c3 [ 1 < c1 <= 3]
-q1 q2 a
-q2 q3 #N c4 [4 < c2]
-q3 q4 a c5
-q4 q5 #N c6
+q3 q4 a
+q4 q5 #N

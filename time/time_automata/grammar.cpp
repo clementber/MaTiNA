@@ -7,7 +7,7 @@ using namespace std;
 
 Bound::Bound(): value(numeric_limits<double>::max()),inclusion(-1){}
 Bound::Bound(double value): value(value), inclusion(0){}
-Bound::Bound(double value, bool included): value(value), inclusion(included){}
+Bound::Bound(double value, int included): value(value), inclusion(included){}
 
 Bound Bound::operator+(Bound const& bound2) const{
   if(this->value == numeric_limits<double>::max()
@@ -54,7 +54,7 @@ DBM::DBM(int clocks_number):length(clocks_number+1){
     }
   }
 }
-DBM::DBM(Automate autom):length(autom.clocks.size()+1){
+DBM::DBM(Automate const& autom):length(autom.clocks.size()+1){
   for(int i=0;i<length;i++){
     matrice.push_back(vector<Bound>(length,Bound(0)));
   }
@@ -115,27 +115,32 @@ bool DBM::empty() const{
   Bound zero = Bound(0);
   for(int i = 0; i< length; i++){
     //Verification of the diagonal values.
-    if(matrice[i][i] != zero)
+    if(matrice[i][i] != zero){
       return true;
+    }
     //Bounds of clocks values are positive. Don't need to test maximum bound.
     //(The minimal bound of a clock c_i is -1*matrice[0][i])
-    if (zero < matrice[0][i])
+    if (zero < matrice[0][i]){
       return true;
+    }
     //The maximum bound is greater than the minimal one.
-    if (matrice[i][0] + matrice[0][i] < zero)
+    if (matrice[i][0] + matrice[0][i] < zero){
       return true;
+    }
   }
   //Check if the relation between clocks is consistent.
   //(ci-cj ~ matrice_ij, where ~ in {<,<=})
   for(int i=1; i<length; i++){
     for(int j = i+1; j<length; j++){
       //The maximum bound is greater than the minimal one.
-      if (matrice[i][j] + matrice[j][i] < zero)
+      if (matrice[i][j] + matrice[j][i] < zero){
         return true;
+      }
       //Check if the clocks values are consistent with the relation.
       if((matrice[i][0]+matrice[0][j]+matrice[j][i] < zero)
-      || (matrice[0][i]+matrice[j][0]+matrice[i][j] < zero))
+      || (matrice[0][i]+matrice[j][0]+matrice[i][j] < zero)){
         return true;
+      }
     }
   }
   return false;
@@ -343,6 +348,11 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
         final_clocks_status.matrice[i][j] = final_clocks_status.matrice[i][j].min(current_clocks_status.matrice[i][j]);
       }
     }
+
+    if(final_clocks_status.empty()) {
+      return {};
+    }
+
     //The unreachable values in the final_clocks_status should be removed from the
     // initial_clocks_status
     Bound minVals[final_clocks_status.length], maxVals[final_clocks_status.length];
@@ -355,7 +365,7 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
       if(initial_clocks_status.matrice[i][0] != Bound(0)){
         initial_clocks_status.matrice[0][i].value = initial_clocks_status.matrice[0][i].value - (minVals[i].value - final_clocks_status.matrice[0][i].value);
         initial_clocks_status.matrice[0][i].inclusion = final_clocks_status.matrice[0][i].inclusion;
-        initial_clocks_status.matrice[i][0] = initial_clocks_status.matrice[i][0].value - (minVals[i].value - final_clocks_status.matrice[i][0].value);
+        initial_clocks_status.matrice[i][0] = initial_clocks_status.matrice[i][0].value - (maxVals[i].value - final_clocks_status.matrice[i][0].value);
         initial_clocks_status.matrice[i][0].inclusion = final_clocks_status.matrice[i][0].inclusion;
       }
     }
@@ -377,7 +387,11 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
     max_remaining_time = max_remaining_time.min(max_available_time);
     if(min_remaining_time < Bound(0)){
       min_remaining_time = Bound(0);
+    }else{
+      min_remaining_time.value *= -1;
+      min_remaining_time.inclusion *= -1;
     }
+
 
     //Reset the clocks
     current_clocks_status.reset(clocks_to_reset);
@@ -398,7 +412,9 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
       }
     }
 
-    if(final_clocks_status.empty()) return {};
+    if(final_clocks_status.empty()) {
+      return {};
+    }
 
     //And report the modification on the initial zone.
     Bound minVals[final_clocks_status.length], maxVals[final_clocks_status.length];
@@ -423,13 +439,17 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
         }
       }
     }
-    if(current_clocks_status.empty()) return {};
+    if(current_clocks_status.empty()){
+      return {};
+    }
     current_clocks_status.normalize();
   }
 
   //Check if the outgoing clocks_values are accepted in the final state.
   current_clocks_status = destination->accept(current_clocks_status);
-  if(current_clocks_status.empty()) return {};
+  if(current_clocks_status.empty()) {
+    return {};
+  }
 
   //Recalculate the final zone.
   Bound minVals[final_clocks_status.length], maxVals[final_clocks_status.length];
@@ -437,7 +457,9 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
     minVals[i] = final_clocks_status.matrice[0][i];
     maxVals[i] = final_clocks_status.matrice[i][0];
   }
-  if(final_clocks_status.empty()) return {};
+  if(final_clocks_status.empty()) {
+    return {};
+  }
   final_clocks_status.normalize();
   for(int i=0; i<final_clocks_status.length;i++){
     if(initial_clocks_status.matrice[i][0] != Bound(0)){
