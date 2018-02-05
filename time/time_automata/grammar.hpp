@@ -47,7 +47,7 @@ namespace automate{
     vector<vector<Bound>> matrice;
     int length;
 
-    DBM();
+    DBM(); //Create a DBM of length 0.
     DBM(DBM const& dbm);
     DBM(int clocks_number);
     DBM(Automate const& autom);

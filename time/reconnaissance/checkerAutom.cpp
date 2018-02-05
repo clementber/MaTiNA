@@ -55,6 +55,6 @@ int main(int argc, char**argv){
     //cout << "input : " << str << " pattern reconnu? " << checker.check()<<"\n";
     str = "";
   }
-  //checker.print_state("final");
+  checker.print_state("final");
   return 0;
 }

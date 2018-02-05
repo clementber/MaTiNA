@@ -1,5 +1,5 @@
 #include "parsingDriver.hpp"
-#include "yacc.tab.hpp"
+#include "yaccAST.tab.hpp"
 
 regex_driver::regex_driver ()
   : trace_scanning (false), trace_parsing (false)
@@ -11,14 +11,17 @@ regex_driver::~regex_driver ()
 }
 
 int
-regex_driver::parse (automate::Automate* automate, const std::string &f)
+regex_driver::parse (automate::Automate** automate, const std::string &f)
 {
   file = f;
   scan_begin ();
-  yy::parser parser (automate, *this);
+  AST_node * ast;
+  yy::parser parser (& ast, *this);
   parser.set_debug_level (trace_parsing);
   int res = parser.parse ();
   scan_end ();
+  *automate = ast.convert();
+  delete ast;
 
   return res;
 }
