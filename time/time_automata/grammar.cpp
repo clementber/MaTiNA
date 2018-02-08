@@ -80,7 +80,7 @@ void DBM::increment(double time_delay){
   }
 }
 
-void DBM::reset(vector<Clock*> clks){
+void DBM::reset(unordered_set<Clock*> clks){
   for(Clock* clk : clks){
     int id = clk->getId();
     matrice[id][0]=Bound(0);
@@ -95,7 +95,7 @@ void DBM::reset(vector<Clock*> clks){
 }
 
 //The value of the given clocks became the interval [0,+inf].
-void DBM::maximize(vector<Clock*> clks){
+void DBM::maximize(unordered_set<Clock*> clks){
   for(Clock* clk : clks){
     int id = clk->getId();
     matrice[id][0]=Bound();
@@ -257,7 +257,7 @@ DBM State::accept(DBM const& clocks_status) const{
 
 Transition::Transition(State* const& ori, State* const& dest, vector<string> events,
            DBM const& clocks_interv,
-           vector<Clock*> const& clock_to_reset) : origine(ori), destination(dest),
+           unordered_set<Clock*> const& clock_to_reset) : origine(ori), destination(dest),
            triggers(events), clocks_to_reset(clock_to_reset){
   clocks_constraints = clocks_interv.intersect(ori->clocks_constraints);
   /**If the clock is reset there is no need to verify the destination's

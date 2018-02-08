@@ -43,7 +43,7 @@
 
 %type <automate::Automate*> autom
 %type <std::vector<std::string>> names list_name
-%type <std::vector<automate::Clock*>> clocks
+%type <std::unordered_set<automate::Clock*>> clocks
 %type <automate::DBM> conditions
 %type <std::pair<automate::Clock*, std::pair<automate::Bound,automate::Bound>>> condition
 %type <automate::Bound> borne_inf borne_sup
@@ -173,9 +173,9 @@ arrete :
     }
 clocks :
    names {
-     vector<Clock*> res;
+     unordered_set<Clock*> res;
      for(std::string clock_name : $1){
-       res.push_back(generate_automate->find_or_create_clock(clock_name));
+       res.insert(generate_automate->find_or_create_clock(clock_name));
      }
      $$ = res;
    }

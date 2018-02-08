@@ -2,7 +2,7 @@
 
 %{
 #include <string>
-#include "../time_automata/grammar.hpp"
+#include "ast.hpp"
 #include "parsingDriver.hpp"
 #include "yacc.tab.hpp"
 

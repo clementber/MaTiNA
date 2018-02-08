@@ -6,6 +6,7 @@
 #include <map>
 #include <list>
 #include <set>
+#include <unordered_set>
 
 //DEBUG
 //#include <iostream>
@@ -64,9 +65,9 @@ namespace automate{
     //Time modification operators
     void increment(double time_delay);
     //The value of the given clocks are set to zero.
-    void reset(vector<Clock*> clk);
+    void reset(unordered_set<Clock*> clk);
     //The value of the given clocks became the interval [0,+inf].
-    void maximize(vector<Clock*> clks);
+    void maximize(unordered_set<Clock*> clks);
 
     //Emptiness predicat. Return false when the clocks zone described is empty.
     bool empty() const;
@@ -118,7 +119,7 @@ namespace automate{
     State* destination;
     vector<string> triggers;
     DBM clocks_constraints;
-    vector<Clock*> clocks_to_reset;
+    unordered_set<Clock*> clocks_to_reset;
 
     /**
     * with the first constructor, the constraints of the transitions will be the
@@ -127,7 +128,7 @@ namespace automate{
     */
     Transition(State* const& ori, State* const& dest, vector<string> events,
                DBM const& clocks_interv,
-               vector<Clock*> const& clock_to_reset);
+               unordered_set<Clock*> const& clock_to_reset);
     Transition(State* const& ori, State* const& dest);
     ~Transition();
 

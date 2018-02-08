@@ -2,7 +2,8 @@
 # define REGE_DRIVER_HH
 # include <string>
 # include "../time_automata/grammar.hpp"
-# include "yaccAST.tab.hpp"
+# include "ast.hpp"
+# include "yacc.tab.hpp"
 
 // Tell Flex the lexer's prototype ...
 # define YY_DECL \
