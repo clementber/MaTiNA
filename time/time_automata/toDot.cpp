@@ -72,9 +72,10 @@ void convert_to_dot(Automate* autom, ostream& output){
       }
       if(!trans.clocks_to_reset.empty()){
         output << "\\n";
-        output << trans.clocks_to_reset[0]->name << ":=0";
-        for(unsigned int i =1; i<trans.clocks_to_reset.size(); i++){
-          output << "," << trans.clocks_to_reset[i]->name << ":=0";
+        auto it = trans.clocks_to_reset.begin();
+        output << (*it)->name << ":=0";
+        for(it++;it != trans.clocks_to_reset.end(); it++){
+          output << "," << (*it)->name << ":=0";
         }
       }
       output << "\"]\n";

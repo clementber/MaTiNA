@@ -20,8 +20,10 @@ regex_driver::parse (automate::Automate** automate, const std::string &f)
   parser.set_debug_level (trace_parsing);
   int res = parser.parse ();
   scan_end ();
-  *automate = ast->convert();
-  delete ast;
+  if(res == 0){
+    *automate = ast->convert();
+    delete ast;
+  }
 
   return res;
 }

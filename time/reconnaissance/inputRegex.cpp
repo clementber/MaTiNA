@@ -27,7 +27,7 @@ int main(int argc, char**argv){
   automate::Automate*input_autom = new automate::Automate();
   regex_driver parser;
 
-  int res = parser.parse (input_autom, argv[1]);
+  int res = parser.parse (&input_autom, argv[1]);
 
 
   ifstream tes(argv[2], std::ifstream::in);

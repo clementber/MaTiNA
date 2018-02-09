@@ -1,6 +1,6 @@
 all: libautomatefromregexp.a
 
-test : yacc.tab.o lexer.yy.o ../time_automata/grammar.o parsingDriver.o main.o ast.hpp ../time_automata/toDot.o
+test : yacc.tab.o lexer.yy.o ../time_automata/grammar.o parsingDriver.o main.o ast.o ../time_automata/toDot.o
 	g++ -std=c++11 -Wall -Wextra -o $@ $^
 
 libautomatefromregexp.a: yacc.tab.o lexer.yy.o ../time_automata/grammar.o parsingDriver.o ast.o

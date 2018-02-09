@@ -17,7 +17,7 @@ namespace tre_ast{
     AST_node(int number_clocks);
     virtual Automate * convert();
     virtual Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk)=0;
-    virtual ~AST_node()=0;
+    virtual ~AST_node();
   };
 
   class AST_OR : public AST_node{

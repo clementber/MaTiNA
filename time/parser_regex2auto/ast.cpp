@@ -1,5 +1,6 @@
 #include "ast.hpp"
 #include <unordered_set>
+#include <iostream>
 
 using namespace std;
 using namespace automate;
@@ -17,6 +18,8 @@ Automate * AST_node::convert(){
   res->clocks = clks;
   return res;
 }
+
+AST_node::~AST_node()=default;
 
 AST_OR::AST_OR(AST_node * n1, AST_node * n2):
             AST_node(n1->number_clocks+n2->number_clocks),case1(n1), case2(n2){}
@@ -158,6 +161,7 @@ AST_CONCAT::AST_CONCAT(AST_node* n1, AST_node* n2):
                AST_node(n1->number_clocks+n2->number_clocks),begin(n1),end(n2){}
 
 AST_CONCAT::~AST_CONCAT(){
+  cout << "Well deleted\n";
   delete begin;
   delete end;
 }
