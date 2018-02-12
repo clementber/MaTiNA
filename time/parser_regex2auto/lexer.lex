@@ -45,7 +45,7 @@ static yy::location loc;
 "[" return (yy::parser::make_LCROCHET(loc));
 "]" return (yy::parser::make_RCROCHET(loc));
 [0-9]+(\.[0-9]+)? return yy::parser::make_NUMBER(std::stod(yytext),loc);
-[[:alpha:]]([[:alnum:]]|"-"|">")* {return yy::parser::make_EVENT(yytext,loc);}
+[[:alpha:]]([[:alnum:]]|"-")* {return yy::parser::make_EVENT(yytext,loc);}
 <<EOF>> { return yyterminate(); }
 . { cout << "Symbol non reconnu : " << yytext <<"\n"; }
 %%

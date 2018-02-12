@@ -85,7 +85,7 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
   int initial_clock_number = init_clk;
   Automate * autom1 = pattern1->convert(clocks, cpt_state,init_clk);
   vector<Clock*> new_clocks;
-  for(unsigned int i = initial_clock_number; i< clocks.size(); i++){
+  for(unsigned int i = initial_clock_number; i< init_clk; i++){
     new_clocks.push_back(clocks[i]);
     clocks[i]=nullptr;
   }
@@ -125,9 +125,11 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
   for(auto const& element1 : autom1->transitions){
     for(Transition trans1 : element1.second){
       if(!trans1.epsilon()){ continue; }
+      State * t1ori = trans1.origine;
+      State * t1dest = trans1.destination;
       for(State & state : autom2->states){
-        trans1.origine = dictionnary[trans1.origine][&state];
-        trans1.destination = dictionnary[trans1.destination][&state];
+        trans1.origine = dictionnary[t1ori][&state];
+        trans1.destination = dictionnary[t1dest][&state];
         a->transitions[trans1.origine].push_back(trans1);
       }
     }
@@ -136,9 +138,11 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
   for(auto const& element2 : autom2->transitions){
     for(Transition trans2 : element2.second){
       if(!trans2.epsilon()){ continue; }
+      State * t2ori = trans2.origine;
+      State * t2dest = trans2.destination;
       for(State & state : autom1->states){
-        trans2.origine = dictionnary[&state][trans2.origine];
-        trans2.destination = dictionnary[&state][trans2.destination];
+        trans2.origine = dictionnary[&state][t2ori];
+        trans2.destination = dictionnary[&state][t2dest];
         a->transitions[trans2.origine].push_back(trans2);
       }
     }
@@ -161,7 +165,6 @@ AST_CONCAT::AST_CONCAT(AST_node* n1, AST_node* n2):
                AST_node(n1->number_clocks+n2->number_clocks),begin(n1),end(n2){}
 
 AST_CONCAT::~AST_CONCAT(){
-  cout << "Well deleted\n";
   delete begin;
   delete end;
 }
@@ -224,6 +227,9 @@ Automate * AST_DELAY::convert(vector<Clock*> & clocks, int & cpt_state, int & in
     }
     state.clocks_constraints.matrice[init_clk][0]=sup;
     for(Transition & trans : a->transitions[&state]){
+      if(trans.clocks_constraints.getClocks_number() == 0){
+        trans.clocks_constraints = DBM(clocks.size());
+      }
       trans.clocks_constraints.matrice[init_clk][0]=sup;
       for(State * endState : a->endStates){
         if(endState == trans.destination){
@@ -386,7 +392,7 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
   int initial_clock_number = init_clk;
   Automate * autom1 = pattern1->convert(clocks, cpt_state,init_clk);
   vector<Clock*> new_clocks;
-  for(unsigned int i = initial_clock_number; i< clocks.size(); i++){
+  for(unsigned int i = initial_clock_number; i< init_clk; i++){
     new_clocks.push_back(clocks[i]);
     clocks[i]=nullptr;
   }
@@ -399,7 +405,7 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
 
   for(State & oldState1 : autom1->states){
     for(State & oldState2 : autom2->states){
-      a->states.push_back(State(oldState1.id+"-"+oldState2.id));
+      a->states.push_back(State(oldState1.id+""+oldState2.id));
       State & newState = *(--(a->states.end()));
       newState.clocks_constraints = oldState1.clocks_constraints.intersect(oldState2.clocks_constraints);
       dictionnary[&oldState1][&oldState2] = &newState;
@@ -408,9 +414,11 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
 
   for(auto const& element1 : autom1->transitions){
     for(Transition trans1 : element1.second){
+      State * t1ori = trans1.origine;
+      State * t1dest = trans1.destination;
       for(State & state2 : autom2->states){
-        trans1.origine = dictionnary[trans1.origine][&state2];
-        trans1.destination=dictionnary[trans1.destination][&state2];
+        trans1.origine = dictionnary[t1ori][&state2];
+        trans1.destination=dictionnary[t1dest][&state2];
         a->transitions[trans1.origine].push_back(trans1);
       }
     }
@@ -418,9 +426,11 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
 
   for(auto const& element2 : autom2->transitions){
     for(Transition trans2 : element2.second){
+      State * t2ori = trans2.origine;
+      State * t2dest = trans2.destination;
       for(State & state1 : autom1->states){
-        trans2.origine = dictionnary[&state1][trans2.origine];
-        trans2.destination = dictionnary[&state1][trans2.destination];
+        trans2.origine = dictionnary[&state1][t2ori];
+        trans2.destination = dictionnary[&state1][t2dest];
         a->transitions[trans2.origine].push_back(trans2);
       }
     }

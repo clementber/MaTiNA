@@ -13,14 +13,17 @@ int main(int argc, char *argv[]){
     cout << "Nombre d'argument incorrecte : <fichier .regex> <sortie .dot>\n";
   }
   regex_driver parser;
-  automate::Automate*input_autom = new automate::Automate();
+  automate::Automate*input_autom = nullptr;
   int res = parser.parse (&input_autom, argv[1]);
   if(res != 0){
-    delete (input_autom);
+    if(input_autom != nullptr){
+      delete input_autom;
+    }
     return 1;
   }
+
   cout << "Value returned by parse : " << res <<"\n";
-  cout << "Number of state : " << input_autom->states.size() << "\nTheir names : \n";
+  cout << "Number of state : " << input_autom->states.size() << "\nStates names : \n";
   for(automate::State st : input_autom->states){
     cout << "\t" << st.id << "\n";
   }
@@ -53,8 +56,10 @@ int main(int argc, char *argv[]){
       cout << "\n";
     }
   }
+
  if(argc >=3){
    ofstream output(argv[2]);
+   cout << "Fichier .dot : " << argv[2] << "\n";
    convert_to_dot(input_autom,output);
    output.close();
  }
