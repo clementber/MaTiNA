@@ -24,10 +24,10 @@ int main(int argc, char**argv){
     cout << "Second argument : time event sequence\n";
     return 1;
   }
-  automate::Automate*input_autom = new automate::Automate();
+  automate::Automate*input_autom;
   regex_driver parser;
 
-  int res = parser.parse (input_autom, argv[1]);
+  int res = parser.parse (&input_autom, argv[1]);
 
 
   ifstream tes(argv[2], std::ifstream::in);
