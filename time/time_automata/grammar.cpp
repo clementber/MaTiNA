@@ -332,6 +332,7 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
     }
     current_clocks_status.normalize();
     final_clocks_status.normalize();
+
     //Generate the projection DBM (all reachable value) from the current clocks_status to the final_clocks_status.
     DBM projection = current_clocks_status.project(final_clocks_status);
     //The accepted values are the intersection of the projection DBM
@@ -345,7 +346,8 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
     //current_clocks_values.
     for(int i=1; i<final_clocks_status.length; i++){
       for(int j=i+1; j<final_clocks_status.length;j++){
-        final_clocks_status.matrice[i][j] = final_clocks_status.matrice[i][j].min(current_clocks_status.matrice[i][j]);
+        final_clocks_status.matrice[i][j] = current_clocks_status.matrice[i][j];
+        final_clocks_status.matrice[j][i] = current_clocks_status.matrice[j][i];
       }
     }
 
@@ -360,7 +362,10 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
       minVals[i] = final_clocks_status.matrice[0][i];
       maxVals[i] = final_clocks_status.matrice[i][0];
     }
+    //Reduce the individual clocks valuation after capturate them.
     final_clocks_status.normalize();
+    //Recalculate the allowed initial valuation by removing the one that
+    //cannot reach a final valuation.
     for(int i=0; i<final_clocks_status.length;i++){
       if(initial_clocks_status.matrice[i][0] != Bound(0)){
         initial_clocks_status.matrice[0][i].value = initial_clocks_status.matrice[0][i].value - (minVals[i].value - final_clocks_status.matrice[0][i].value);
