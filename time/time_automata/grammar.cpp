@@ -408,18 +408,6 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
       final_clocks_status.matrice[clk->getId()][0] = max_remaining_time;
       final_clocks_status.matrice[0][clk->getId()] = min_remaining_time;
     }
-    //Calculate the relation of the final zone.
-    for(int i=1; i<current_clocks_status.length; i++){
-      for(int j=1; j<current_clocks_status.length; j++){
-        if(i!=j){
-          final_clocks_status.matrice[i][j]=current_clocks_status.matrice[i][j];
-        }
-      }
-    }
-
-    if(final_clocks_status.empty()) {
-      return {};
-    }
   }
 
   //Check if the outgoing clocks_values are accepted in the final state.
