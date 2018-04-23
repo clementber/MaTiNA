@@ -420,34 +420,6 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
     if(final_clocks_status.empty()) {
       return {};
     }
-
-    //And report the modification on the initial zone.
-    Bound minVals[final_clocks_status.length], maxVals[final_clocks_status.length];
-    for(int i=0; i<final_clocks_status.length;i++){
-      minVals[i] = final_clocks_status.matrice[0][i];
-      maxVals[i] = final_clocks_status.matrice[i][0];
-    }
-    final_clocks_status.normalize();
-    for(int i=0; i<final_clocks_status.length;i++){
-      if(initial_clocks_status.matrice[i][0] != Bound(0)){
-        initial_clocks_status.matrice[0][i].value = initial_clocks_status.matrice[0][i].value - (minVals[i].value - final_clocks_status.matrice[0][i].value);
-        initial_clocks_status.matrice[0][i].inclusion = final_clocks_status.matrice[0][i].inclusion;
-        initial_clocks_status.matrice[i][0] = initial_clocks_status.matrice[i][0].value - (minVals[i].value - final_clocks_status.matrice[i][0].value);
-        initial_clocks_status.matrice[i][0].inclusion = final_clocks_status.matrice[i][0].inclusion;
-      }
-    }
-    //Finally apply the raltion of the final zone on the current zone.
-    for(int i=1; i<current_clocks_status.length; i++){
-      for(int j=1; j<current_clocks_status.length; j++){
-        if(i!=j){
-          current_clocks_status.matrice[i][j]=final_clocks_status.matrice[i][j];
-        }
-      }
-    }
-    if(current_clocks_status.empty()){
-      return {};
-    }
-    current_clocks_status.normalize();
   }
 
   //Check if the outgoing clocks_values are accepted in the final state.
@@ -455,7 +427,12 @@ vector<DBM> Transition::accept(DBM initial_clocks_status,
   if(current_clocks_status.empty()) {
     return {};
   }
-
+  //Finally apply the raltion of the final zone on the current zone.
+  for(int i=1; i<current_clocks_status.length; i++){
+    for(int j=1; j<current_clocks_status.length; j++){
+      final_clocks_status.matrice[i][j]=current_clocks_status.matrice[i][j];
+    }
+  }
   //Recalculate the final zone.
   Bound minVals[final_clocks_status.length], maxVals[final_clocks_status.length];
   for(int i=0; i<final_clocks_status.length;i++){
