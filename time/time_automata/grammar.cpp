@@ -148,16 +148,12 @@ bool DBM::empty() const{
 
 //Reduction operator. Refine the dbm by reducing the interval
 //which are lager than needed.
-//PRECONDITION : this->isValid()==true.
 void DBM::normalize(){
-  for(int i=1; i<length;i++){
-    for(int j=1; j<length;j++){
-      if(i==j) continue;
-      //Reduce the interval of each clocks depending on the relation on it
-      matrice[0][i]=matrice[0][i].min(matrice[0][j]+matrice[j][i]);
-      matrice[i][0]=matrice[i][0].min(matrice[j][0]+matrice[i][j]);
-      //Reduce a relation if too far from the clocks values.
-      matrice[i][j] = matrice[i][j].min(matrice[i][0] + matrice[0][j]);
+  for(int k = 0; k<length; k++){
+    for(int i=0; i<length;i++){
+      for(int j=0; j<length;j++){
+        matrice[i][j] = matrice[i][j].min(matrice[i][k]+matrice[k][j]);
+      }
     }
   }
 }
