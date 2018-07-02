@@ -201,6 +201,9 @@ Automate * AST_CONCAT::convert(vector<Clock*> & clocks, int & cpt_state, int & i
     for(Transition transition : autom_begin->transitions[&oldState]){
       transition.origine = newState;
       transition.destination = dictionnary[transition.destination];
+      if(transition.destination == autom_end->start){
+        transition.clocks_to_reset = unordered_set<Clock*>(autom_end->clocks);
+      }
       autom_end->transitions[newState].push_back(transition);
     }
   }
