@@ -202,7 +202,7 @@ Automate * AST_CONCAT::convert(vector<Clock*> & clocks, int & cpt_state, int & i
       transition.origine = newState;
       transition.destination = dictionnary[transition.destination];
       if(transition.destination == autom_end->start){
-        transition.clocks_to_reset = unordered_set<Clock*>(autom_end->clocks);
+        transition.clocks_to_reset = unordered_set<Clock*>(autom_end->clocks.begin(),autom_end->clocks.end());
       }
       autom_end->transitions[newState].push_back(transition);
     }
