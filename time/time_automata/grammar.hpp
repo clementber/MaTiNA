@@ -135,10 +135,10 @@ namespace automate{
     bool epsilon() const;
     /**
     * Accept return an empty vector of clock if clocks_status don't respect the
-    * constraints. Else, it return a new vector of clock whose the possible
-    * values of the clock at the end of the transition.
+    * constraints. Otherwise, it return a new vector of clock which are the
+    * possible values of the clock at the end of the transition.
     * If an event is given as paramter, the transition will return an empty
-    * vector if the event isn't one o it's triggers. However, if no events are
+    * vector if the event isn't one or it's triggers. However, if no events are
     * given as parameter, only the transition with no triggers can be crossed.
     */
     DBM accept(string const& event, DBM const& clocks_status) const;

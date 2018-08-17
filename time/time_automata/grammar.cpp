@@ -235,9 +235,8 @@ void Clock::print() const{
   cout << this->name << " : " << this->id;
 }
 
-State::State(string identifiant,
-             DBM clock_constraints) :
-               id(identifiant), clocks_constraints(clock_constraints){ }
+State::State(string identifiant, DBM clock_constraints) :
+  id(identifiant), clocks_constraints(clock_constraints){ }
 State::State(string identifiant):id(identifiant),clocks_constraints(DBM()) { }
 State::State():id(""),clocks_constraints(DBM()) { }
 State::~State() = default;

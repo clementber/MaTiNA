@@ -13,93 +13,103 @@
 using namespace std;
 
 namespace automate{
-class Interval{
-public:
-  double borne_inf, borne_sup;
-  int include_inf, include_sup;
+  class Automate;
+  class Clock;
+  class Bound{
+  public:
+    double value;
+    int inclusion; //Inclusion level : 0 is <= ; -1 is <
 
-  Interval();
-  Interval(double constant);
-  Interval(double born_inf, double born_sup);
-  Interval(double born_inf, bool incl_inf, double born_sup, bool incl_sup);
-  Interval(double born_inf, int incl_inf, double born_sup, int incl_sup);
+    Bound();
+    Bound(double value);
+    Bound(double value, int included);
 
-  //SUBSET!!
-  bool operator<=(Interval const& interv);
-  void operator=(double const val);
-  bool operator==(Interval const& interv) const;
-  Interval operator+(Interval const& interv) const;
-  void operator+=(Interval const& interv);
-  void operator+=(double const val);
-  void Interval::validate();
-  bool isValid();
+    Bound operator+(Bound const& bound2) const;
+    bool operator==(Bound const& bound2) const;
+    bool operator!=(Bound const& bound2) const;
+    bool operator<(Bound const& bound2) const;
+    bool operator<=(Bound const& bound2) const;
+    Bound min(Bound const& bound2) const;
+  };
+  /**Differences Bounds Matrice
+  * This class is a matrice which contain for each pair of (row,column) the
+  * maximal bound of the clocks values substraction row_clockId - cloumn_clockId.
+  * Each bound is a pair (double value, {LESS, LESSEQ} inclusion).
+  * The first row and column of the matrice is for the clock_0 which value is
+  * always 0. This clock is used to know the current interval of value for all
+  * the other clock.
+  *
+  * If matrice[row][column] = (val,~) Then, there exist clocks c1 and c2
+  * where c1.id == row and c2.id == column and c1-c2 ~ val. (~ in {<, <=}).
+  **/
+  class DBM{
+  public:
+    vector<vector<Bound>> matrice;
+    int length;
 
-  static Interval intersect(Interval interv1, Interval interv2){
-    double borne_inf, borne_sup;
-    int include_inf, include_sup;
-    interv1.validate();
-    interv2.validate();
+    DBM(); //Create a DBM of length 0.
+    DBM(DBM const& dbm);
+    DBM(int clocks_number);
+    DBM(Automate const& autom);
 
-    if(interv1.borne_inf > interv2.borne_inf){
-      borne_inf = interv1.borne_inf;
-      include_inf = interv1.include_inf;
-    }else if(interv1.borne_inf < interv2.borne_inf){
-      borne_inf = interv2.borne_inf;
-      include_inf = interv2.include_inf;
-    }else{
-      borne_inf = interv1.borne_inf;
-      include_inf = max(interv1.include_inf, interv2.include_inf);
+    //Return a DBM describing no zone.
+    static DBM fail(){
+      DBM invalid_dbm = DBM();
+      invalid_dbm.matrice[0][0]=-1;
+      return invalid_dbm;
     }
+    int getClocks_number() const;
+    void addClock();
 
-    if(interv1.borne_sup < interv2.borne_sup){
-      borne_sup = interv1.borne_sup;
-      include_sup = interv1.include_sup;
-    }else if(interv1.borne_sup > interv2.borne_sup){
-      borne_sup = interv2.borne_sup;
-      include_sup = interv2.include_sup;
-    }else{
-      borne_sup = interv1.borne_sup;
-      include_sup = min(interv1.include_sup , interv2.include_sup);
-    }
+    //Time modification operators
+    void increment(double time_delay);
+    //The value of the given clocks are set to zero.
+    void reset(unordered_set<Clock*> clk);
+    //The value of the given clocks became the interval [0,+inf].
+    void maximize(unordered_set<Clock*> clks);
 
-    Interval res(borne_inf,include_inf,borne_sup,include_sup);
-    return res;
-  }
+    //Emptiness predicat. Return false when the clocks zone described is empty.
+    bool empty() const;
 
-  static Interval validate(Interval const& interv){
-    Interval res(interv);
-    res.validate;
-    return res;
-  }
-};
+    //Reductions operator.
+    void normalize();
+
+    //Projection operator : Generate the zone containing every reachable values
+    //between the current DBM and the destination.
+    DBM project(DBM const& destination) const;
+
+    //Intersection operator.
+    DBM intersect(DBM const& dbm2) const;
+    //Subset operators
+    bool operator<(DBM const& dbm2) const;
+    bool operator<=(DBM const& dbm2) const;
+  };
+
 
   class Clock{
+  private:
+    int id;
   public:
     string name;
-    Interval value;
 
-    Clock(string const& p_name);
+    Clock(string const& p_name, int id);
     ~Clock();
 
-    void reset();
-    void increment(Interval increm);
-    bool operator==(Clock const& c2);
-    void validate();
+    int getId() const;
     void print() const;
-    static Clock validate(Clock clk){clk.validate(); return clk;}
   };
 
   class State{
     public:
       string id;
-      map<string,Interval> clocks_constraints;
+      DBM clocks_constraints;
 
       State();
       State(string identifiant);
-      State(string identifiant, map<string,Interval> clocks_constraints);
+      State(string identifiant, DBM clocks_constraints);
       ~State();
 
-      vector<Clock> accept(vector<Clock> const& clocks_status);
+      DBM accept(DBM const& clocks_status);
   };
 
   class Transition{
@@ -108,8 +118,8 @@ public:
     State* destination;
     vector<int> allocations;
     vector<int> frees;
-    map<string,Interval> clocks_constraints;
-    vector<string> clocks_to_reset;
+    DBM clocks_constraints;
+    unordered_set<Clock*> clocks_to_reset;
 
     /**
     * with the first constructor, the constraints of the transitions will be the
@@ -117,31 +127,37 @@ public:
     * destination->clocks_constraints.
     */
     Transition(State* const& ori, State* const& dest, vector<int> allocs,
-               vector<int> freez, map<string,Interval> const& clocks_interv,
-               vector<string> const& clock_to_reset);
+               vector<int> freez, DBM const& clocks_interv,
+               unordered_set<Clock*> const& clock_to_reset);
     Transition(State* const& ori, State* const& dest);
     virtual ~Transition();
     virtual string to_string();
-    virtual pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
-        pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> value, Interval const& increm);
-    virtual pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> accept_event(
-        pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> value,
+    virtual pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
+        DBM initial_clocks_status, DBM current_clocks_status,
+        DBM final_clocks_status,vector<pair<bool,unordered_set<string>>> memory);
+    virtual pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
+        DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory);
+    virtual pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_event(
+        DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
         string event);
-    virtual pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> accept_constant(
-      pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> value,
-      string constant);
+    virtual pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_constant(
+        DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
+        string constant);
   };
 
   class Epsilon_Transition : public Transition{
   public:
     Epsilon_Transition(State* const& ori, State* const& dest, vector<int> allocs,
-               vector<int> freez, map<string,Interval> const& clocks_interv,
-               vector<string> const& clock_to_reset);
+               vector<int> freez, DBM const& clocks_interv,
+               vector<Clock*> const& clock_to_reset);
     Epsilon_Transition(State* const& ori, State* const& dest);
     ~Epsilon_Transition();
     string to_string();
-    pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
-        pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> value, Interval const& increm);
+    pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
+        DBM initial_clocks_status, DBM current_clocks_status,
+        DBM final_clocks_status,vector<pair<bool,unordered_set<string>>> memory);
+    pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
+        DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory);
   };
 
   class Event_Transition : public Transition{
@@ -149,13 +165,13 @@ public:
     int variable;
 
     Event_Transition(State* const& ori, State* const& dest, vector<int> allocs,
-               vector<int> freez, map<string,Interval> const& clocks_interv,
-               vector<string> const& clock_to_reset, int variable);
+               vector<int> freez, DBM const& clocks_interv,
+               vector<Clock*> const& clock_to_reset, int variable);
     Event_Transition(State* const& ori, State* const& dest, int variable);
     ~Event_Transition();
     string to_string();
-    pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> accept_event(
-        pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> value,
+    pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_event(
+        DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
         string event);
   };
 
@@ -164,14 +180,14 @@ public:
     string constant;
 
     Constant_Transition(State* const& ori, State* const& dest, vector<int> allocs,
-               vector<int> freez, map<string,Interval> const& clocks_interv,
-               vector<string> const& clock_to_reset,
+               vector<int> freez, DBM const& clocks_interv,
+               vector<Clock*> const& clock_to_reset,
                string constant);
     Constant_Transition(State* const& ori, State* const& dest, string constant);
     ~Constant_Transition();
     string to_string();
-    pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> accept_constant(
-        pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> value,
+    pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_constant(
+        DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
         string constant);
   };
 
@@ -179,18 +195,18 @@ public:
   public:
     int ressources;
     list<State> states;
-    vector<Clock> clocks;
+    vector<Clock*> clocks;
     map<State*,vector<Transition*>> transitions;
-    unordered_set<string> constants;
+    unordered_set<string> alphabet;
     State* start;
     vector<State*> endStates;
 
       Automate();
       Automate(int p_ressources,
                list<State> p_states,
-               vector<Clock> p_clocks,
+               vector<Clock*> p_clocks,
                map<State*, vector<Transition*>> p_transitions,
-               unordered_set<string> p_constants,
+               unordered_set<string> p_alphabet,
                State* p_start,
                vector<State*> p_endStates);
 
