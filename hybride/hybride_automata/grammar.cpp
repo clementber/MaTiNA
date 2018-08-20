@@ -162,10 +162,10 @@ void DBM::normalize(){
 //The intersection of a DBM is the matrix where each element is the smallest
 //from both the DBM in parameter.
 DBM DBM::intersect(DBM const& dbm2) const{
-  if(this->length == 1){
+  if(this->getClocks_number() == 0){
     return dbm2;
   }
-  if(dbm2.length == 1)
+  if(dbm2.getClocks_number() == 0)
     return *this;
   if(this->length != dbm2.length){
     cout << "Erreur d'intersection. Les deux DBM n'ont pas le même nombre d'horloge!";
@@ -298,7 +298,7 @@ void desalloc(vector<int> ressources, vector<pair<bool,unordered_set<string>>> &
 
 Transition::Transition(State* const& ori, State* const& dest, vector<int> allocs,
            vector<int> freez, DBM const& clocks_interv,
-           vector<Clock*> const& clock_to_reset) : origine(ori), destination(dest),
+           unordered_set<Clock*> const& clock_to_reset) : origine(ori), destination(dest),
            allocations(allocs), frees(freez), clocks_to_reset(clock_to_reset){
    clocks_constraints = clocks_interv.intersect(ori->clocks_constraints);
    /**If the clock is reset there is no need to verify the destination's
@@ -338,21 +338,33 @@ pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_constant(
   return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
 }
 
-//TODO
+
 string Transition::to_string(){
   stringstream res;
-  if(!clocks_constraints.empty()){
+  if(!clocks_constraints.getClocks_number()==0){
     res << "<br/>";
-    for(auto interv : clocks_constraints){
-      res << "{" << interv.first << "&isin;[" << interv.second.borne_inf ;
-      res << "," << interv.second.borne_sup  << "]}";
+    for(int i=0; i<this->clocks_constraints.length;i++){
+      cout << "\t\t\t";
+      for(int j=0; j<this->clocks_constraints.length;j++){
+        double value = this->clocks_constraints.matrice[i][j].value;
+        cout << "(";
+        if(value == numeric_limits<double>::max())
+          cout<< "inf";
+        else
+          cout << value;
+        cout << "," << this->clocks_constraints.matrice[i][j].inclusion <<")";
+        cout << "\t";
+      }
+      cout << "\n";
     }
   }
   if(!clocks_to_reset.empty()){
     res << "<br/>";
-    res << clocks_to_reset[0] << ":=0";
-    for(unsigned int i =1; i<clocks_to_reset.size(); i++){
-      res << "," << clocks_to_reset[i] << ":=0";
+    auto reset_it = clocks_to_reset.begin();
+    res << *reset_it << ":=0";
+    reset_it++;
+    for(; reset_it !=clocks_to_reset.end(); reset_it++){
+      res << ", " << *reset_it << ":=0";
     }
   }
   return res.str();
@@ -360,12 +372,15 @@ string Transition::to_string(){
 
 Epsilon_Transition::Epsilon_Transition(State* const& ori, State* const& dest, vector<int> allocs,
            vector<int> freez, DBM const& clocks_interv,
-           vector<Clock*> const& clock_to_reset)
+           unordered_set<Clock*> const& clock_to_reset)
     : Transition(ori,dest,allocs,freez,clocks_interv, clock_to_reset){}
+
 Epsilon_Transition::Epsilon_Transition(State* const& ori, State* const& dest)
     : Transition(ori,dest){}
+
 Epsilon_Transition::~Epsilon_Transition() = default;
-//TODO
+
+
 string Epsilon_Transition::to_string(){
   stringstream res;
   if(!allocations.empty()){
@@ -388,76 +403,179 @@ string Epsilon_Transition::to_string(){
 
 //The Epsilon_Transition are the only transition
 //possibly triggered after a time elapse.
-pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> Epsilon_Transition::accept_epsilon(
-    pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> value, Interval const& increm){
+pair<DBM,vector<pair<bool,unordered_set<string>>>> Epsilon_Transition::accept_epsilon(
+        DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory){
   //Time management
-  vector<Clock> clock_res;
-  if(!value.first.empty()){
-    Interval inf_increm(0,numeric_limits<double>::max()), sup_increm(0,numeric_limits<double>::max());
-    for(Clock const& clk : value.first){
-      //Calcul des incréments possibles pour chaque bornes.
-      try{
-        Interval const& constraint = this->clocks_constraints.at(clk.name);
-        if(constraint.borne_inf - clk.value.borne_inf > inf_increm.borne_inf){
-          inf_increm.borne_inf = constraint.borne_inf - clk.value.borne_inf;
-          inf_increm.include_inf = constraint.include_inf - clk.value.include_inf;
-        }else{
-          if(constraint.borne_inf - clk.value.borne_inf == inf_increm.borne_inf){
-            inf_increm.include_inf = max(constraint.include_inf - clk.value.include_inf,inf_increm.include_inf);
-          }
-        }
-        if(constraint.borne_sup - clk.value.borne_inf < inf_increm.borne_sup){
-          inf_increm.borne_sup = constraint.borne_sup - clk.value.borne_inf;
-          inf_increm.include_sup = constraint.include_sup - clk.value.include_inf;
-        }else{
-          if(constraint.borne_sup - clk.value.borne_inf == inf_increm.borne_sup){
-            inf_increm.include_sup = min(constraint.include_sup - clk.value.include_inf,inf_increm.include_sup);
-          }
-        }
-        if(constraint.borne_inf - clk.value.borne_sup > inf_increm.borne_inf){
-          sup_increm.borne_inf = constraint.borne_inf - clk.value.borne_sup;
-          sup_increm.include_inf = constraint.include_inf - clk.value.include_sup;
-        }else{
-          if(constraint.borne_inf - clk.value.borne_sup == sup_increm.borne_inf){
-            sup_increm.include_inf = max(constraint.include_inf - clk.value.include_sup,sup_increm.include_inf);
-          }
-        }
-        if(constraint.borne_sup - clk.value.borne_sup < sup_increm.borne_sup){
-          sup_increm.borne_sup = constraint.borne_sup - clk.value.borne_sup;
-          sup_increm.include_sup = constraint.include_sup - clk.value.include_sup;
-        }else{
-          if(constraint.borne_sup - clk.value.borne_sup == sup_increm.borne_sup){
-            sup_increm.include_sup = min(constraint.include_sup - clk.value.include_sup,sup_increm.include_sup);
-          }
-        }
-      }catch(out_of_range const& oor){}
-    }
-    //Last check on the token in it's final state.
-    clock_res = this->destination->accept(clock_res);
-    if(clock_res.empty()){
-      return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>({},{});
-    }
+  DBM accepted_values = clocks_status.intersect(clocks_constraints);
+  if(accepted_values.empty()) {
+    return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
   }
+  accepted_values.reset(clocks_to_reset);
+  //Last check on the token in it's final state.
+  DBM output_values = accepted_values.intersect(destination->clocks_constraints);
+  output_values.normalize();
 
   //Memory management
-  vector<pair<bool,unordered_set<string>>> memory_res = value.second;
-  if( ! value.second.empty()){
-    alloc(this->allocations, memory_res);
-    desalloc(this->frees, memory_res);
+  if( ! memory.empty()){
+    alloc(this->allocations, memory);
+    desalloc(this->frees, memory);
   }
 
-  return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>(clock_res,memory_res);
+  return pair<DBM,vector<pair<bool,unordered_set<string>>>>(output_values,memory);
 }
 
+pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> Epsilon_Transition::accept_epsilon(
+        DBM initial_clocks_status, DBM current_clocks_status,
+        DBM final_clocks_status,vector<pair<bool,unordered_set<string>>> memory){
+  //Check if a constraint shall be respected
+  if(clocks_constraints.getClocks_number() != 0){
+    //First : correct the initial and final clocks values by removing the
+    //unreachable from the clocks_constraints.
+    for(int i =1; i< clocks_constraints.length; i++){
+      if(clocks_constraints.matrice[i][0] < initial_clocks_status.matrice[i][0]){
+        final_clocks_status.matrice[i][0] = Bound(final_clocks_status.matrice[i][0].value - initial_clocks_status.matrice[i][0].value + clocks_constraints.matrice[i][0].value , clocks_constraints.matrice[i][0].inclusion);
+        initial_clocks_status.matrice[i][0] = clocks_constraints.matrice[i][0];
+      }
+      if(clocks_constraints.matrice[0][i] < final_clocks_status.matrice[0][i]){
+        if(initial_clocks_status.matrice[i][0] != Bound(0)){
+          initial_clocks_status.matrice[0][i] = Bound(initial_clocks_status.matrice[0][i].value - final_clocks_status.matrice[0][i].value + clocks_constraints.matrice[0][i].value , clocks_constraints.matrice[0][i].inclusion);
+        }
+        final_clocks_status.matrice[0][i] = clocks_constraints.matrice[0][i];
+      }
+      current_clocks_status.matrice[i][0] = current_clocks_status.matrice[i][0].min(clocks_constraints.matrice[i][0]);
+    }
+    if(current_clocks_status.empty()||final_clocks_status.empty()||initial_clocks_status.empty()){
+      return {};
+    }
+    current_clocks_status.normalize();
+    final_clocks_status.normalize();
+
+    //Generate the projection DBM (all reachable value) from the current clocks_status to the final_clocks_status.
+    DBM projection = current_clocks_status.project(final_clocks_status);
+    //The accepted values are the intersection of the projection DBM
+    // and the constraint DBM.
+    current_clocks_status = clocks_constraints.intersect(projection);
+    if(current_clocks_status.empty()){
+      return {};
+    }
+    current_clocks_status.normalize();
+    //The final_clocks_status is restricted by the relation of the
+    //current_clocks_values.
+    for(int i=1; i<final_clocks_status.length; i++){
+      for(int j=i+1; j<final_clocks_status.length;j++){
+        final_clocks_status.matrice[i][j] = current_clocks_status.matrice[i][j];
+        final_clocks_status.matrice[j][i] = current_clocks_status.matrice[j][i];
+      }
+    }
+
+    if(final_clocks_status.empty()) {
+      return {};
+    }
+
+    //The unreachable values in the final_clocks_status should be removed from the
+    // initial_clocks_status
+    Bound minVals[final_clocks_status.length], maxVals[final_clocks_status.length];
+    for(int i=0; i<final_clocks_status.length;i++){
+      minVals[i] = final_clocks_status.matrice[0][i];
+      maxVals[i] = final_clocks_status.matrice[i][0];
+    }
+    //Reduce the individual clocks valuation after capturate them.
+    final_clocks_status.normalize();
+    //Recalculate the allowed initial valuation by removing the one that
+    //cannot reach a final valuation.
+    for(int i=0; i<final_clocks_status.length;i++){
+      if(initial_clocks_status.matrice[i][0] != Bound(0)){
+        initial_clocks_status.matrice[0][i].value = initial_clocks_status.matrice[0][i].value - (minVals[i].value - final_clocks_status.matrice[0][i].value);
+        initial_clocks_status.matrice[0][i].inclusion = final_clocks_status.matrice[0][i].inclusion;
+        initial_clocks_status.matrice[i][0] = initial_clocks_status.matrice[i][0].value - (maxVals[i].value - final_clocks_status.matrice[i][0].value);
+        initial_clocks_status.matrice[i][0].inclusion = final_clocks_status.matrice[i][0].inclusion;
+      }
+    }
+  }
+
+  //Reset management
+  if(!clocks_to_reset.empty()){
+    //Calculate the final values for the reseted clocks.
+    Bound max_available_time = Bound(final_clocks_status.matrice[1][0].value - initial_clocks_status.matrice[1][0].value, final_clocks_status.matrice[1][0].inclusion - initial_clocks_status.matrice[1][0].inclusion);
+    Bound max_remaining_time = final_clocks_status.matrice[1][0] + current_clocks_status.matrice[0][1];
+    Bound min_remaining_time = Bound((-1*final_clocks_status.matrice[0][1].value) - current_clocks_status.matrice[1][0].value, (-1*final_clocks_status.matrice[0][1].inclusion) - current_clocks_status.matrice[1][0].inclusion);
+    for(int i=2; i< final_clocks_status.length; i++){
+      max_available_time = max_available_time.min(Bound(final_clocks_status.matrice[i][0].value - initial_clocks_status.matrice[i][0].value, final_clocks_status.matrice[i][0].inclusion - initial_clocks_status.matrice[i][0].inclusion));
+      max_remaining_time = max_remaining_time.min(final_clocks_status.matrice[i][0] + current_clocks_status.matrice[0][i]);
+      Bound candidate_min_remaining_time = Bound((-1*final_clocks_status.matrice[0][1].value) - current_clocks_status.matrice[1][0].value, (-1*final_clocks_status.matrice[0][1].inclusion) - current_clocks_status.matrice[1][0].inclusion);
+      min_remaining_time = min_remaining_time<candidate_min_remaining_time?candidate_min_remaining_time:min_remaining_time;
+    }
+
+    max_remaining_time = max_remaining_time.min(max_available_time);
+    if(min_remaining_time < Bound(0)){
+      min_remaining_time = Bound(0);
+    }else{
+      min_remaining_time.value *= -1;
+      min_remaining_time.inclusion *= -1;
+    }
+
+
+    //Reset the clocks
+    current_clocks_status.reset(clocks_to_reset);
+
+    //Adjust the final and initial clocks bounds.
+    for(Clock* clk: clocks_to_reset){
+      initial_clocks_status.matrice[clk->getId()][0] = Bound(0);
+      initial_clocks_status.matrice[0][clk->getId()] = Bound(0);
+      final_clocks_status.matrice[clk->getId()][0] = max_remaining_time;
+      final_clocks_status.matrice[0][clk->getId()] = min_remaining_time;
+    }
+  }
+
+  //Check if the outgoing clocks_values are accepted in the final state.
+  current_clocks_status = destination->accept(current_clocks_status);
+  if(current_clocks_status.empty()) {
+    return {};
+  }
+  //Finally apply the relation of the final zone on the current zone.
+  for(int i=1; i<current_clocks_status.length; i++){
+    for(int j=1; j<current_clocks_status.length; j++){
+      final_clocks_status.matrice[i][j]=current_clocks_status.matrice[i][j];
+    }
+  }
+  //Recalculate the final zone.
+  Bound minVals[final_clocks_status.length], maxVals[final_clocks_status.length];
+  for(int i=0; i<final_clocks_status.length;i++){
+    minVals[i] = final_clocks_status.matrice[0][i];
+    maxVals[i] = final_clocks_status.matrice[i][0];
+  }
+  if(final_clocks_status.empty()) {
+    return {};
+  }
+  final_clocks_status.normalize();
+  for(int i=0; i<final_clocks_status.length;i++){
+    if(initial_clocks_status.matrice[i][0] != Bound(0)){
+      initial_clocks_status.matrice[0][i].value = initial_clocks_status.matrice[0][i].value - (minVals[i].value - final_clocks_status.matrice[0][i].value);
+      initial_clocks_status.matrice[0][i].inclusion = final_clocks_status.matrice[0][i].inclusion;
+      initial_clocks_status.matrice[i][0].value = initial_clocks_status.matrice[i][0].value - (maxVals[i].value - final_clocks_status.matrice[i][0].value);
+      initial_clocks_status.matrice[i][0].inclusion = final_clocks_status.matrice[i][0].inclusion;
+    }
+  }
+  
+  //Memory management
+  if( ! memory.empty()){
+    alloc(this->allocations, memory);
+    desalloc(this->frees, memory);
+  }
+  
+  return pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>>({initial_clocks_status,current_clocks_status,final_clocks_status},memory);   
+}
 
 Event_Transition::Event_Transition(State* const& ori, State* const& dest,
            vector<int> allocs, vector<int> freez, DBM const& clocks_interv,
-           vector<Clock*> const& clock_to_reset, int p_variable)
+           unordered_set<Clock*> const& clock_to_reset, int p_variable)
     : Transition(ori,dest,allocs,freez,clocks_interv, clock_to_reset), variable(p_variable){}
+
 Event_Transition::Event_Transition(State* const& ori, State* const& dest, int p_variable)
     : Transition(ori,dest), variable(p_variable){}
+
 Event_Transition::~Event_Transition() = default;
-//TODO
+
 string Event_Transition::to_string(){
   stringstream res;
   if(!allocations.empty()){
@@ -474,53 +592,39 @@ string Event_Transition::to_string(){
   return res.str() + Transition::to_string();
 }
 
-pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> Event_Transition::accept_event(
-    pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> value,
+pair<DBM,vector<pair<bool,unordered_set<string>>>> Event_Transition::accept_event(
+    DBM clocks_status, vector<pair<bool,unordered_set<string>>> memory,
     string p_event){
-  //Time management
-  vector<Clock> clock_res;
-  if( ! value.first.empty()){
-    for(auto & clk : value.first){
-      Clock new_clock(clk.name);
-      try{
-        Interval & constraint = this->clocks_constraints.at(clk.name);
-        Interval intersection = Interval::intersect(clk.value, constraint);
-        if(intersection.borne_inf == -1){
-          return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>({},{});
-        }
-        new_clock.value = intersection;
-      }catch(const out_of_range& oor){new_clock = clk;}
-      for(auto clock_to_reset : this->clocks_to_reset){
-        if(clock_to_reset == new_clock.name){
-          new_clock.reset();
-          break;
-        }
-      }
-      clock_res.push_back(new_clock);
-    }
-    clock_res = this->destination->accept(clock_res);
-    if(clock_res.empty()){
-      return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>({},{});
-    }
-  }
   //Memory management
-  vector<pair<bool,unordered_set<string>>> memory_res(value.second);
-  alloc(this->allocations, memory_res);
-  if(!use(this->variable, memory_res, p_event)){
-    return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>({},{});
+  alloc(this->allocations, memory);
+  if(!use(this->variable, memory, p_event)){
+    return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
   }
-  desalloc(this->frees, memory_res);
-  return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>(clock_res, memory_res);
+  desalloc(this->frees, memory);
+    
+  //Time management
+  DBM accepted_values = clocks_status.intersect(clocks_constraints);
+  if(accepted_values.empty()) {
+    return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
+  }
+  accepted_values.reset(clocks_to_reset);
+  //Last check on the clocks_values in the destination location.
+  DBM output_values = accepted_values.intersect(destination->clocks_constraints);
+  output_values.normalize();
+  
+  return pair<DBM,vector<pair<bool,unordered_set<string>>>>(output_values, memory);
 }
 
 Constant_Transition::Constant_Transition(State* const& ori, State* const& dest, vector<int> allocs,
            vector<int> freez, DBM const& clocks_interv,
-           vector<Clock*> const& clock_to_reset, string p_constant)
+           unordered_set<Clock*> const& clock_to_reset, string p_constant)
     : Transition(ori,dest,allocs,freez,clocks_interv, clock_to_reset), constant(p_constant){}
+
 Constant_Transition::Constant_Transition(State* const& ori, State* const& dest, string p_constant)
     : Transition(ori,dest), constant(p_constant){}
+
 Constant_Transition::~Constant_Transition() = default;
-//TODO
+
 string Constant_Transition::to_string(){
   stringstream res;
   res  << constant;
@@ -543,43 +647,28 @@ string Constant_Transition::to_string(){
   }
   return res.str() + Transition::to_string();
 }
-pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> Constant_Transition::accept_constant(
-      pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>> value,
+
+pair<DBM,vector<pair<bool,unordered_set<string>>>> Constant_Transition::accept_constant(
+      DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
       string constant){
   if(constant != this->constant){
-    return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>({},{});
-  }
-  //Time management
-  vector<Clock> clock_res;
-  if(! value.first.empty()){
-    for(auto & clk : value.first){
-      Clock new_clock(clk.name);
-      try{
-        Interval & constraint = this->clocks_constraints.at(clk.name);
-        Interval intersection = Interval::intersect(clk.value, constraint);
-        if(intersection.borne_inf == -1){
-          return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>({},{});
-        }
-        new_clock.value = intersection;
-      }catch(const out_of_range& oor){new_clock = clk;}
-      for(auto clock_to_reset : this->clocks_to_reset){
-        if(clock_to_reset == new_clock.name){
-          new_clock.reset();
-          break;
-        }
-      }
-      clock_res.push_back(new_clock);
-    }
-    clock_res = this->destination->accept(clock_res);
-    if(clock_res.empty()){
-      return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>({},{});
-    }
+    return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
   }
   //Memory management
-  vector<pair<bool,unordered_set<string>>> memory_res(value.second);
-  alloc(this->allocations, memory_res);
-  desalloc(this->frees, memory_res);
-  return pair<vector<Clock>,vector<pair<bool,unordered_set<string>>>>(clock_res, memory_res);
+  alloc(this->allocations, memory);
+  desalloc(this->frees, memory);
+  
+  //Time management
+  DBM accepted_values = clocks_status.intersect(clocks_constraints);
+  if(accepted_values.empty()) {
+    return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
+  }
+  accepted_values.reset(clocks_to_reset);
+  //Last check on the token in it's final state.
+  DBM output_values = accepted_values.intersect(destination->clocks_constraints);
+  output_values.normalize();
+  
+  return pair<DBM,vector<pair<bool,unordered_set<string>>>>(output_values, memory);
 }
 
 Automate::Automate() = default;
@@ -592,7 +681,7 @@ Automate::Automate(int p_ressources,
          State* p_start,
          vector<State*> p_endStates) :
          ressources(p_ressources), states(p_states), clocks(p_clocks),
-         transitions(p_transitions), alphabet(p_constants),
+         transitions(p_transitions), alphabet(p_alphabet),
          start(p_start), endStates(p_endStates) {}
 
 Automate::~Automate() {
@@ -619,9 +708,9 @@ Clock* Automate::find_or_create_clock(string name){
     if(state.clocks_constraints.getClocks_number()!=0){
       state.clocks_constraints.addClock();
     }
-    for(Transition & trans : transitions[&state]){
-      if(trans.clocks_constraints.getClocks_number()!=0){
-        trans.clocks_constraints.addClock();
+    for(Transition* trans : transitions[&state]){
+      if(trans->clocks_constraints.getClocks_number()!=0){
+        trans->clocks_constraints.addClock();
       }
     }
   }

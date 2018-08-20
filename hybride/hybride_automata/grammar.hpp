@@ -122,8 +122,8 @@ namespace automate{
     unordered_set<Clock*> clocks_to_reset;
 
     /**
-    * with the first constructor, the constraints of the transitions will be the
-    * intersection of clocks_interv, origine->clocks_constraints and
+    * with the first constructor, the constraints of the transitions will be
+    * the intersection of clocks_interv, origine->clocks_constraints and
     * destination->clocks_constraints.
     */
     Transition(State* const& ori, State* const& dest, vector<int> allocs,
@@ -137,6 +137,9 @@ namespace automate{
         DBM final_clocks_status,vector<pair<bool,unordered_set<string>>> memory);
     virtual pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
         DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory);
+    /**The parameter 'event' isn't present in the unordered set 'alphabet' of 
+    * the automaton containing this transition.
+    */
     virtual pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_event(
         DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
         string event);
@@ -149,7 +152,7 @@ namespace automate{
   public:
     Epsilon_Transition(State* const& ori, State* const& dest, vector<int> allocs,
                vector<int> freez, DBM const& clocks_interv,
-               vector<Clock*> const& clock_to_reset);
+               unordered_set<Clock*> const& clock_to_reset);
     Epsilon_Transition(State* const& ori, State* const& dest);
     ~Epsilon_Transition();
     string to_string();
@@ -166,7 +169,7 @@ namespace automate{
 
     Event_Transition(State* const& ori, State* const& dest, vector<int> allocs,
                vector<int> freez, DBM const& clocks_interv,
-               vector<Clock*> const& clock_to_reset, int variable);
+               unordered_set<Clock*> const& clock_to_reset, int variable);
     Event_Transition(State* const& ori, State* const& dest, int variable);
     ~Event_Transition();
     string to_string();
@@ -181,7 +184,7 @@ namespace automate{
 
     Constant_Transition(State* const& ori, State* const& dest, vector<int> allocs,
                vector<int> freez, DBM const& clocks_interv,
-               vector<Clock*> const& clock_to_reset,
+               unordered_set<Clock*> const& clock_to_reset,
                string constant);
     Constant_Transition(State* const& ori, State* const& dest, string constant);
     ~Constant_Transition();
