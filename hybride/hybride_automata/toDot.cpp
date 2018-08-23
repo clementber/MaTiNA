@@ -26,8 +26,9 @@ void convert_to_dot(Automate* autom, ostream& output){
     output << state.id;
     if(!state.clocks_constraints.empty()){
       output << " ";
-      for(auto interv : state.clocks_constraints){
-        output << "{" << interv.first << ":[" << interv.second.borne_inf << "," << interv.second.borne_sup <<"]}";
+      for(unsigned int i= 1 ; i<= state.clocks_constraints.getClocks_number(); i++){
+        output << "{" << autom->clocks[i]->name << ":" << ((state.clocks_constraints.matrice[0][i].inclusion < 0)?"]":"[") << (-1*state.clocks_constraints.matrice[0][i].value);
+        output << "," << state.clocks_constraints.matrice[i][0].value << ((state.clocks_constraints.matrice[0][i].inclusion < 0)?"[":"]") << "}";
       }
     }
     output << ">]\n";

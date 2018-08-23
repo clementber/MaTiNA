@@ -46,12 +46,13 @@
 %token <double> NUMBER
 
 %type <automate::Automate*> autom
-%type <std::vector<std::string>> names list_name clocks
-%type <std::tuple<std::vector<int>,std::vector<int>,std::vector<std::string>>> actions
+%type <std::vector<std::string>> names list_name 
+%type <std::unordered_set<automate::Clock*>> clocks
+%type <std::tuple<std::vector<int>,std::vector<int>,std::unordered_set<automate::Clock*>>> actions
 %type <std::vector<int>> allocs frees
-%type <std::map<string, automate::Interval>> conditions
-%type <std::pair<string, automate::Interval>> condition
-%type <std::pair<double,bool>> borne_inf borne_sup
+%type <automate::DBM> conditions
+%type <std::pair<automate::Clock*, std::pair<automate::Bound,automate::Bound>>> condition
+%type <automate::Bound> borne_inf borne_sup
 
 %token COMMA LACOLADE RACOLADE EGALE LCROCHET RCROCHET LBALISE
 %token START_NODE END_NODE NLINE DOUBLE_SLASH NONE DOLLAR FREE ALLOC RESET
@@ -67,47 +68,64 @@ nodes :
 
 node :
    NAME START_NODE conditions{
+     DBM conditions = $3;
+     conditions.normalize();
      if (generate_automate->start!=nullptr){
        yy::parser::error (@$,"A start state was already choosen.");
      }
-     State new_state($1,$3);
+     State new_state($1,conditions);
      generate_automate->states.push_back(new_state);
      std::list<State>::iterator ite = generate_automate->states.end();
      ite--;
      generate_automate->start = &(*ite);
+     generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(generate_automate->start, {}));
    }
   |NAME END_NODE conditions{
-    State new_state($1,$3);
+    DBM conditions = $3;
+    conditions.normalize();
+    State new_state($1, conditions);
     generate_automate->states.push_back(new_state);
     std::list<State>::iterator ite = generate_automate->states.end();
     ite--;
     generate_automate->endStates.push_back(&(*ite));
+    generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(&(*ite), {}));
   }
   |NAME conditions{
-    State new_state($1,$2);
+    DBM conditions = $2;
+    conditions.normalize();
+    State new_state($1, conditions);
     generate_automate->states.push_back(new_state);
+    std::list<State>::iterator ite = generate_automate->states.end();
+    ite--;
+    generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(&(*ite), {}));
   }
   |NAME START_NODE END_NODE conditions{
     if (generate_automate->start!=nullptr){
       yy::parser::error (@$,"A start state was already choosen.");
     }
-    State new_state($1,$4);
+    DBM conditions = $4;
+    conditions.normalize();
+    State new_state($1,conditions);
     generate_automate->states.push_back(new_state);
     std::list<State>::iterator ite = generate_automate->states.end();
     ite--;
     generate_automate->start = &(*ite);
     generate_automate->endStates.push_back(&(*ite));
+    generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(generate_automate->start, {}));
   }
   |NAME END_NODE START_NODE conditions{
     if (generate_automate->start!=nullptr){
       yy::parser::error (@$,"A start state was already choosen.");
     }
-    State new_state($1,$4);
+    DBM conditions = $4;
+    conditions.normalize();
+    State new_state($1,conditions);
     generate_automate->states.push_back(new_state);
     std::list<State>::iterator ite = generate_automate->states.end();
     ite--;
     generate_automate->start = &(*ite);
     generate_automate->endStates.push_back(&(*ite));
+    generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(generate_automate->start, {}));
   }
 
 arretes :
@@ -117,6 +135,8 @@ arretes :
 arrete :
   /*Ori*//*Dest*//*Event*/
    names  names NAME actions conditions{
+     DBM conditions = $5;
+     conditions.normalize();
      //Create the new transition for each pairs (origine, destination)
      for(string ori : $1){
        State* origine_state = generate_automate->getState(ori);
@@ -128,14 +148,16 @@ arrete :
          if(destination_state == nullptr){
            yy::parser::error (@$, "state undeclared : "+dest);
          }
-         Transition* new_trans = new Constant_Transition(origine_state, destination_state, get<0>($4), get<1>($4), $5, get<2>($4), $3);
-         generate_automate->constants.insert($3);
+         Transition* new_trans = new Constant_Transition(origine_state, destination_state, get<0>($4), get<1>($4), conditions, get<2>($4), $3);
+         generate_automate->alphabet.insert($3);
          generate_automate->transitions[origine_state].push_back(new_trans);
        }
      }
    }
    /*Ori*//*Dest*//*Event*/
    |names  names  DOLLAR  NAME actions conditions{
+     DBM conditions = $6;
+     conditions.normalize();
       //Create the new transition for each pairs (origine, destination)
       for(string ori : $1){
         State* origine_state = generate_automate->getState(ori);
@@ -148,13 +170,15 @@ arrete :
             yy::parser::error (@$, "state undeclared : "+dest);
           }
           int variable = variable_to_int($4,driver);
-          Transition* new_trans = new Event_Transition(origine_state, destination_state, get<0>($5), get<1>($5), $6, get<2>($5), variable);
+          Transition* new_trans = new Event_Transition(origine_state, destination_state, get<0>($5), get<1>($5), conditions, get<2>($5), variable);
           generate_automate->transitions[origine_state].push_back(new_trans);
         }
       }
     }
    /*Ori*//*Dest*//*Event*/
    |names  names  NONE actions conditions{
+      DBM conditions = $5;
+      conditions.normalize();
       //Create the new transition for each pairs of origine, destination
       for(string ori : $1){
         State* origine_state = generate_automate->getState(ori);
@@ -166,7 +190,7 @@ arrete :
           if(destination_state == nullptr){
             yy::parser::error (@$, "state undeclared : "+dest);
           }
-          Transition* new_trans = new Epsilon_Transition(origine_state, destination_state, get<0>($4), get<1>($4), $5, get<2>($4));
+          Transition* new_trans = new Epsilon_Transition(origine_state, destination_state, get<0>($4), get<1>($4), conditions, get<2>($4));
           generate_automate->transitions[origine_state].push_back(new_trans);
         }
       }
@@ -179,14 +203,24 @@ names :
 list_name :
    list_name COMMA NAME { $1.push_back($3); $$ = $1;}
   | NAME { $$ = { $1 };}
+  
+clocks :
+   names {
+     unordered_set<Clock*> res;
+     for(std::string clock_name : $1){
+       res.insert(generate_automate->find_or_create_clock(clock_name));
+     }
+     $$ = res;
+   }
+  | %empty { $$ = {}; }
 
 actions :
-   %empty {$$= make_tuple(vector<int>(),vector<int>(),vector<string>());}
-  |allocs {$$= make_tuple($1,vector<int>(),vector<string>());}
-  |frees {$$= make_tuple(vector<int>(),$1,vector<string>());}
+   %empty {$$= make_tuple(vector<int>(),vector<int>(),unordered_set<Clock*>());}
+  |allocs {$$= make_tuple($1,vector<int>(),unordered_set<Clock*>());}
+  |frees {$$= make_tuple(vector<int>(),$1,unordered_set<Clock*>());}
   |RESET clocks {$$= make_tuple(vector<int>(),vector<int>(),$2);}
-  |frees allocs {$$= make_tuple($2,$1,vector<string>());}
-  |allocs frees {$$= make_tuple($1,$2,vector<string>());}
+  |frees allocs {$$= make_tuple($2,$1,unordered_set<Clock*>());}
+  |allocs frees {$$= make_tuple($1,$2,unordered_set<Clock*>());}
   |RESET clocks allocs {$$= make_tuple($3,vector<int>(),$2);}
   |allocs RESET clocks {$$= make_tuple($1,vector<int>(),$3);}
   |RESET clocks frees {$$= make_tuple(vector<int>(),$3,$2);}
@@ -212,69 +246,52 @@ frees :
     }
   }
 
-clocks :
-   names {
-     for(std::string clock_name : $1){
-       generate_automate->find_or_create_clock(clock_name);
-     }
-     $$ = $1;
-   }
-  | %empty { $$ = {}; }
-
 conditions :
    conditions condition {
-    if($2.second.borne_inf != -1){
-        $1.insert($2);
+    if($1.getClocks_number() == 0){
+      $1 = DBM(generate_automate->clocks.size());
+    }else if($1.getClocks_number() < generate_automate->clocks.size()){
+      $1.addClock();
     }
+    $1.matrice[$2.first->getId()][0] = $1.matrice[$2.first->getId()][0].min($2.second.second);
+    $1.matrice[0][$2.first->getId()] = $1.matrice[0][$2.first->getId()].min($2.second.first);
     $$ = $1;
   }
   | %empty {
-    std::map<string, Interval> res;
-    $$ = res;
+    $$ = DBM();
   }
 
 condition :
    LCROCHET borne_inf NAME borne_sup RCROCHET {
-     Interval interval($2.first,$2.second,$4.first,$4.second);
-     generate_automate->find_or_create_clock($3);
-     std::pair<string,Interval> res($3, interval);
-     $$= res;
+     Clock* clk = generate_automate->find_or_create_clock($3);
+     $$= std::pair<Clock*,std::pair<Bound,Bound>>(clk, std::pair<Bound,Bound>($2,$4));
    }
   |LCROCHET NAME borne_sup RCROCHET {
-    Interval interval(0,true,$3.first,$3.second);
-    generate_automate->find_or_create_clock($2);
-    std::pair<string,Interval> res($2, interval);
-    $$= res;
+    Clock* clk = generate_automate->find_or_create_clock($2);
+    $$= std::pair<Clock*,std::pair<Bound,Bound>>(clk, std::pair<Bound,Bound>(Bound(0),$3));
   }
   |LCROCHET NAME EGALE NUMBER RCROCHET {
-    Interval interval($4,$4);
-    generate_automate->find_or_create_clock($2);
-    std::pair<string,Interval> res($2, interval);
-    $$= res;
+    Clock* clk = generate_automate->find_or_create_clock($2);
+    $$= std::pair<Clock*,std::pair<Bound,Bound>>(clk, std::pair<Bound,Bound>($4,$4));
    }
 
 borne_inf :
    NUMBER LBALISE {
-     std::pair<double,bool> inf($1,false);
-     $$= inf;
+     $$= Bound(-1*$1, -1);
    }
   |NUMBER LBALISE EGALE {
-    std::pair<double,bool> inf($1,true);
-    $$= inf;
+    $$= Bound(-1*$1, 0);
   }
 
 borne_sup :
   LBALISE NUMBER {
-    std::pair<double,bool> sup($2,false);
-    $$= sup;
+    $$= Bound($2, -1);
   }
   |LBALISE EGALE NUMBER {
-   std::pair<double,bool> sup($3,true);
-   $$= sup;
+    $$= Bound($3, 0);
   }
   |%empty{
-   std::pair<double,bool> sup(std::numeric_limits<double>::max(),true);
-   $$= sup;
+    $$= Bound(); //Positiv infiny
   }
 
 %%
