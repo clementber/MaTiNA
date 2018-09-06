@@ -318,21 +318,21 @@ Transition::Transition(State* const& ori, State* const& dest)
 }
 Transition::~Transition() = default;
 
-pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
+pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> Transition::accept_epsilon(
       DBM initial_clocks_status, DBM current_clocks_status,
       DBM final_clocks_status,vector<pair<bool,unordered_set<string>>> memory){
   return pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>>({},{});
 }
-pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
+pair<DBM,vector<pair<bool,unordered_set<string>>>> Transition::accept_epsilon(
       DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory){
   return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(), {});
 }
-pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_event(
+pair<DBM,vector<pair<bool,unordered_set<string>>>> Transition::accept_event(
     DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
     string event){
   return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
 }
-pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_constant(
+pair<DBM,vector<pair<bool,unordered_set<string>>>> Transition::accept_constant(
     DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
     string constant){
   return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
@@ -340,34 +340,7 @@ pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_constant(
 
 
 string Transition::to_string(){
-  stringstream res;
-  if(!clocks_constraints.getClocks_number()==0){
-    res << "<br/>";
-    for(int i=0; i<this->clocks_constraints.length;i++){
-      cout << "\t\t\t";
-      for(int j=0; j<this->clocks_constraints.length;j++){
-        double value = this->clocks_constraints.matrice[i][j].value;
-        cout << "(";
-        if(value == numeric_limits<double>::max())
-          cout<< "inf";
-        else
-          cout << value;
-        cout << "," << this->clocks_constraints.matrice[i][j].inclusion <<")";
-        cout << "\t";
-      }
-      cout << "\n";
-    }
-  }
-  if(!clocks_to_reset.empty()){
-    res << "<br/>";
-    auto reset_it = clocks_to_reset.begin();
-    res << *reset_it << ":=0";
-    reset_it++;
-    for(; reset_it !=clocks_to_reset.end(); reset_it++){
-      res << ", " << *reset_it << ":=0";
-    }
-  }
-  return res.str();
+  return "";
 }
 
 Epsilon_Transition::Epsilon_Transition(State* const& ori, State* const& dest, vector<int> allocs,
@@ -398,7 +371,7 @@ string Epsilon_Transition::to_string(){
       res << ",<O>&nu;</O>{" << frees[i] << "}";
     }
   }
-  return res.str() + Transition::to_string();
+  return res.str();
 }
 
 //The Epsilon_Transition are the only transition
@@ -556,14 +529,14 @@ pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> Epsilon_Transition::a
       initial_clocks_status.matrice[i][0].inclusion = final_clocks_status.matrice[i][0].inclusion;
     }
   }
-  
+
   //Memory management
   if( ! memory.empty()){
     alloc(this->allocations, memory);
     desalloc(this->frees, memory);
   }
-  
-  return pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>>({initial_clocks_status,current_clocks_status,final_clocks_status},memory);   
+
+  return pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>>({initial_clocks_status,current_clocks_status,final_clocks_status},memory);
 }
 
 Event_Transition::Event_Transition(State* const& ori, State* const& dest,
@@ -583,13 +556,13 @@ string Event_Transition::to_string(){
       res << "&nu;{" << allocations[i] << "},";
     }
   }
-  res <<"<B>{"<< variable << "}</B>";
+  res <<"<B>"<< variable << "</B>";
   if(!frees.empty()){
     for(uint i=0; i < frees.size(); i++){
       res << ",<O>&nu;</O>{" << frees[i] << "}";
     }
   }
-  return res.str() + Transition::to_string();
+  return res.str() ;
 }
 
 pair<DBM,vector<pair<bool,unordered_set<string>>>> Event_Transition::accept_event(
@@ -601,7 +574,7 @@ pair<DBM,vector<pair<bool,unordered_set<string>>>> Event_Transition::accept_even
     return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
   }
   desalloc(this->frees, memory);
-    
+
   //Time management
   DBM accepted_values = clocks_status.intersect(clocks_constraints);
   if(accepted_values.empty()) {
@@ -611,7 +584,7 @@ pair<DBM,vector<pair<bool,unordered_set<string>>>> Event_Transition::accept_even
   //Last check on the clocks_values in the destination location.
   DBM output_values = accepted_values.intersect(destination->clocks_constraints);
   output_values.normalize();
-  
+
   return pair<DBM,vector<pair<bool,unordered_set<string>>>>(output_values, memory);
 }
 
@@ -645,7 +618,7 @@ string Constant_Transition::to_string(){
       res << ",<O>&nu;</O>{" << frees[i] << "}";
     }
   }
-  return res.str() + Transition::to_string();
+  return res.str();
 }
 
 pair<DBM,vector<pair<bool,unordered_set<string>>>> Constant_Transition::accept_constant(
@@ -657,7 +630,7 @@ pair<DBM,vector<pair<bool,unordered_set<string>>>> Constant_Transition::accept_c
   //Memory management
   alloc(this->allocations, memory);
   desalloc(this->frees, memory);
-  
+
   //Time management
   DBM accepted_values = clocks_status.intersect(clocks_constraints);
   if(accepted_values.empty()) {
@@ -667,7 +640,7 @@ pair<DBM,vector<pair<bool,unordered_set<string>>>> Constant_Transition::accept_c
   //Last check on the token in it's final state.
   DBM output_values = accepted_values.intersect(destination->clocks_constraints);
   output_values.normalize();
-  
+
   return pair<DBM,vector<pair<bool,unordered_set<string>>>>(output_values, memory);
 }
 

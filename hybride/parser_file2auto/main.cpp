@@ -19,12 +19,16 @@ int main(int argc, char *argv[]){
   cout << "Number of state : " << input_autom->states.size() << "\nList of states : \n";
   for(State st : input_autom->states){
     cout << "\t" << st.id << "\n";
+    if(!(st.clocks_constraints.getClocks_number() == 0 || st.clocks_constraints.empty())){
+      output_Clocks_constraint(cout, st.clocks_constraints, input_autom->clocks);
+    }
+    cout << "\n";
   }
   cout << "List of edges : " << input_autom->transitions.size() << "\n";
   for(State & st : input_autom->states){
     for(Transition * trans : input_autom->transitions[&st]){
       cout << "\t" << trans->origine->id << "->" << trans->destination->id << " : ";
-      cout << trans->to_string() ;
+      cout << ((Transition)*trans).to_string() ;
 
       if(!trans->allocations.empty()){
         cout << " nu : {";
@@ -41,6 +45,10 @@ int main(int argc, char *argv[]){
           cout << ", " << trans->frees[i];
         }
         cout << "}";
+      }
+      cout << "\n";
+      if(!(trans->clocks_constraints.getClocks_number() == 0 || trans->clocks_constraints.empty())){
+        output_Clocks_constraint(cout, trans->clocks_constraints, input_autom->clocks);
       }
       cout << "\n";
     }

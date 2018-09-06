@@ -1,7 +1,31 @@
 #include "toDot.hpp"
+#include <limits>
 
 using namespace std;
 using namespace automate;
+
+void output_Clocks_constraint(ostream& output, DBM const& clocks_constraints,
+                              vector<Clock*> const& clocks){
+  for(Clock* clk : clocks){
+    double value_min = clocks_constraints.matrice[0][clk->getId()].value;
+    double value_max = clocks_constraints.matrice[clk->getId()][0].value;
+    if(value_min == 0 && value_max==numeric_limits<double>::max())
+      continue;
+    output << "{" << clk->name << ":[";
+    if(value_min == 0){
+      output << "0";
+    }else{
+      output << (-1*value_min);
+    }
+    output << "," ;
+    if(value_max==numeric_limits<double>::max()){
+      output << "inf";
+    }else{
+      output << value_max;
+    }
+    output << "]}";
+  }
+}
 
 void convert_to_dot(Automate* autom, ostream& output){
   output << "digraph {\n";
@@ -22,23 +46,26 @@ void convert_to_dot(Automate* autom, ostream& output){
       case 2: output << "red";break;
       case 3: output << "green";break;
     }
-    output << "][label=<";
+    output << "][label=\"";
     output << state.id;
-    if(!state.clocks_constraints.empty()){
+    output << "\n";
+    if(!(state.clocks_constraints.getClocks_number() == 0 || state.clocks_constraints.empty())){
       output << " ";
-      for(unsigned int i= 1 ; i<= state.clocks_constraints.getClocks_number(); i++){
-        output << "{" << autom->clocks[i]->name << ":" << ((state.clocks_constraints.matrice[0][i].inclusion < 0)?"]":"[") << (-1*state.clocks_constraints.matrice[0][i].value);
-        output << "," << state.clocks_constraints.matrice[i][0].value << ((state.clocks_constraints.matrice[0][i].inclusion < 0)?"[":"]") << "}";
-      }
+      output_Clocks_constraint(output, state.clocks_constraints, autom->clocks);
     }
-    output << ">]\n";
+    output << "\"]\n";
   }
 
   for(State & state : autom->states){
     for(Transition* trans : autom->transitions[&state]){
       output << trans->origine->id << "->" << trans->destination->id <<"[label=<";
       output << trans->to_string();
-      output << ">]\n";
+      output << "<br/>";
+      if(!(trans->clocks_constraints.getClocks_number() == 0 || trans->clocks_constraints.empty())){
+        output << " ";
+        output_Clocks_constraint(output, trans->clocks_constraints, autom->clocks);
+      }
+      output << ">]";
     }
   }
   output << "}";
