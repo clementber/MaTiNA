@@ -1,79 +1,41 @@
 #include <iostream>
 #include "modelRecognizer.hpp"
+#include <limits>
 
 using namespace automate;
 using namespace std;
 using namespace recognizer;
 
-typedef pair<vector<Clock>, vector<pair<bool,unordered_set<string>>>> token_content;
+typedef pair<DBM, vector<pair<bool,unordered_set<string>>>> token_content;
 
-Token::Token(Automate* automate): increm(){
-  for(Clock clk : automate->clocks){
-    this->clocks.push_back(clk);
-  }
+Token::Token(Automate* automate){
+  initial_values = DBM(*automate);
+  current_values = initial_values;
+  final_values = initial_values;
   for(int i = 0; i< automate->ressources; i++){
     variables.push_back(pair<bool,unordered_set<string>>(false,{}));
   }
 }
 
-Token::Token(vector<Clock> p_clocks, vector<pair<bool,unordered_set<string>>> & memory)
-      : clocks(p_clocks), increm(), variables(memory){}
+Token::Token(DBM initial_v,DBM current_v,DBM final_v,
+            vector<pair<bool,unordered_set<string>>> & memory)
+      : initial_values(initial_v), current_values(current_v),
+        final_values(final_v), variables(memory){}
+Token::Token(DBM clocks_v, vector<pair<bool,unordered_set<string>>> & memory):
+        initial_values(clocks_v), current_values(clocks_v),
+        final_values(clocks_v), variables(memory){}
 Token::Token(Token const& token) = default;
 Token::~Token() = default;
 void Token::increment(double time_elapse){
-  increm = time_elapse;
-}
-
-double getMin(Token const& tok, int n){
-  return (tok.clocks[n].value.borne_inf < tok.clocks[n].value.borne_sup?
-                     tok.clocks[n].value.borne_inf
-                    :tok.clocks[n].value.borne_sup);
-}
-
-double getMax(Token const& tok, int n){
-  return (tok.clocks[n].value.borne_inf > tok.clocks[n].value.borne_sup?
-                     tok.clocks[n].value.borne_inf
-                    :tok.clocks[n].value.borne_sup);
-}
-
-double getMinInclude(Token const& tok, int n){
-  return (tok.clocks[n].value.include_inf < tok.clocks[n].value.include_sup?
-                     tok.clocks[n].value.include_inf
-                    :tok.clocks[n].value.include_sup);
-}
-
-double getMaxInclude(Token const& tok, int n){
-  return (tok.clocks[n].value.include_inf > tok.clocks[n].value.include_sup?
-                     tok.clocks[n].value.include_inf
-                    :tok.clocks[n].value.include_sup);
-}
-
-double getMinIncrem(Token const& tok, int n){
-  return (tok.clocks[n].value.borne_inf < tok.clocks[n].value.borne_sup?
-                     tok.increm.borne_inf
-                    :tok.increm.borne_sup);
-}
-
-double getMaxIncrem(Token const& tok, int n){
-  return (tok.clocks[n].value.borne_inf > tok.clocks[n].value.borne_sup?
-                     tok.increm.borne_inf
-                    :tok.increm.borne_sup);
+  final_values.increment(time_elapse);
 }
 
 bool Token::operator<=(Token const& tok2) const{
-  if(this->clocks.size() != tok2.clocks.size()){
+  if(!(this->final_values <= tok2.final_values)){
     return false;
   }
-  for(int i = 0; i<this->clocks.size(); i++){
-    if(! ((getMin(*this,i) > getMin(tok2,i)
-           || (getMin(*this,i) == getMin(tok2,i)
-              && getMinInclude(*this,i) >= getMinInclude(tok2,i)))
-         && (getMax(*this,i) > getMax(tok2,i)
-                || (getMax(*this,i) == getMax(tok2,i)
-                   && getMaxInclude(*this,i) >= getMaxInclude(tok2,i)))
-         && ((this->clocks[i].value + this->increm) <= (c2.clocks[i].value + c2.increm)))){
-      return false;
-    }
+  if(!(this->current_values.project(this->final_values)<=tok2.current_values.project(tok2.final_values))) {
+    return false;
   }
   if(this->variables.size() != tok2.variables.size()){
     return false;
@@ -86,25 +48,15 @@ bool Token::operator<=(Token const& tok2) const{
     }
   }
   for(int i=0; i<tok2.variables.size();i++){
-    if(this->variables[i] != tok2.variables[i]){
+    if(this->variables[i].second != tok2.variables[i].second){
       return false;
     }
   }
   return true;
 }
-
-void Token::validate(){
-  for(Clock & clock : clocks){
-    clock.validate();
-  }
-}
-
 //---------------------------End of class Token-------------------------------//
 
 Checker::Checker(Automate* modele_automate) : modele(modele_automate) {
-  if(modele->clocks.empty() && modele->ressources == 0){
-    modele->clocks.push_back(Clock("default_clk"));
-  }
   map_tokens[modele->start].push_back(Token(modele));
   this->propagate(false);
 }
@@ -127,7 +79,6 @@ void Checker::propagate(bool incremented){
       to_evaluate.push_back(pair<State*,Token>(&state, token));
     }
   }
-
   map<State*,list<Token>> new_map_tokens;
   //Second step : put the token and calculate their sons
   while(!to_evaluate.empty()){
@@ -135,24 +86,36 @@ void Checker::propagate(bool incremented){
     Token evaluate_token = to_evaluate.back().second;
     to_evaluate.pop_back();
     if(!Token::included(evaluate_token, new_map_tokens[evaluate_state])){
+      new_map_tokens[evaluate_state].remove_if([evaluate_token](Token k){return k <= evaluate_token;});
       new_map_tokens[evaluate_state].push_back(evaluate_token);
       for(Transition * trans : modele->transitions[evaluate_state]){
-        token_content new_token_value = trans->accept_epsilon(token_content(evaluate_token.clocks, evaluate_token.variables));
-        if(!(new_token_value.first.empty() && new_token_value.second.empty())){
-          to_evaluate.push_back(pair<State*,Token>(trans->destination,Token(new_token_value.first, new_token_value.second)));
+        if (incremented){
+          pair<vector<DBM>, vector<pair<bool,unordered_set<string>>>> new_token_value;
+          new_token_value = trans->accept_epsilon(evaluate_token.initial_values,
+                                                  evaluate_token.current_values,
+                                                  evaluate_token.final_values,
+                                                  evaluate_token.variables);
+          if(!(new_token_value.first.empty() && new_token_value.second.empty())){
+            to_evaluate.push_back(pair<State*,Token>(trans->destination,
+                          Token(new_token_value.first[0], new_token_value.first[1],
+                                new_token_value.first[2], new_token_value.second)));
+          }
+        }else{
+          token_content new_token_value = trans->accept_epsilon(evaluate_token.current_values, evaluate_token.variables);
+          if(!(new_token_value.first.empty() && new_token_value.second.empty())){
+            to_evaluate.push_back(pair<State*,Token>(trans->destination,Token(new_token_value.first, new_token_value.second)));
+          }
         }
       }
     }
   }
-
   //Third step : only if clock were incremented, finish to  apply the increment
   // and check if the token still respects their state constraints.
   if(incremented){
     map<State*,list<Token>> final_map_tokens;
     for(auto tokens : new_map_tokens){
       for(Token & token : tokens.second){
-        token.validate();
-        vector<Clock> accepted_clocks = tokens.first->accept(token.clocks);
+        DBM accepted_clocks = tokens.first->accept(token.final_values);
         if( ! accepted_clocks.empty()){
           final_map_tokens[tokens.first].push_back(Token(accepted_clocks, token.variables));
         }
@@ -179,7 +142,7 @@ void Checker::input(double time_elapse){
 
 void Checker::input(string event){
   //First step : Find if the event is a constant.
-  bool isConstant = modele->constants.find(event) != modele->constants.end();
+  bool isConstant = modele->alphabet.find(event) != modele->alphabet.end();
 
   //Second step : make the tokens consume the event.
   map<State*,list<Token>> new_map_tokens;
@@ -188,9 +151,9 @@ void Checker::input(string event){
       for(Transition * transition : modele->transitions[&state]){
         token_content new_token_value;
         if(isConstant){
-          new_token_value = transition->accept_constant(token_content(token.clocks,token.variables),event);
+          new_token_value = transition->accept_constant(token.current_values,token.variables,event);
         }else{
-          new_token_value = transition->accept_event(token_content(token.clocks, token.variables),event);
+          new_token_value = transition->accept_event(token.current_values, token.variables,event);
         }
         if( ! (new_token_value.first.empty() && new_token_value.second.empty())){
           new_map_tokens[transition->destination].push_back(Token(new_token_value.first, new_token_value.second));
@@ -211,17 +174,27 @@ void Checker::print_state(string state_name){
   }else{
     cout << "----------------current state : "<<state_name<<"-----------\n";
   }
+  cout << "Clocks name and line number : \n";
+  for(Clock* const& clk : modele->clocks){
+    cout << "\t";
+    clk->print();
+    cout << "\n";
+  }
   for(State& state : modele->states){
     cout << state.id << " : " << this->map_tokens[&state].size() << "\n";
     for(auto token : this->map_tokens[&state]){
       cout << "\t";
-      cout << "token : ";
-
-      for(unsigned int i=0; i<token.clocks.size(); i++){
-        cout << token.clocks[i].name << ": [" << token.clocks[i].value.borne_inf;
-        cout << ", " << token.clocks[i].value.borne_sup << "] ";
+      cout << "token :\n";
+      for(vector<Bound> const& line : token.current_values.matrice){
+        cout << "\t\t";
+        for(Bound const& bound : line){
+          cout << "(";
+          cout << (bound.value==numeric_limits<double>::max()? "\\inf":to_string(bound.value));
+          cout << " , " << bound.inclusion << ") ";
+        }
+        cout <<"\n";
       }
-      cout << "\n        ";
+      cout << "\t\t";
       for(unsigned int i =0; i<token.variables.size(); i++){
         cout << " "<< i << " : {";
         for(string str : token.variables[i].second){
@@ -229,7 +202,9 @@ void Checker::print_state(string state_name){
         }
         cout << "}";
       }
-      cout <<"\n";
+      cout << "\n";
     }
   }
+  cout << "\n";
+
 }

@@ -9,8 +9,9 @@ using namespace automate;
 namespace recognizer{
   class Token{
   public:
-    vector<Clock> clocks;
-    Interval increm;
+    DBM initial_values;
+    DBM current_values;
+    DBM final_values;
     vector<pair<bool,unordered_set<string>>> variables;
 
   //--------------------------------------------------------------------------//
@@ -18,7 +19,10 @@ namespace recognizer{
   //--------------------------------------------------------------------------//
     Token(Automate* automate);
     Token(Token const& token);
-    Token(vector<Clock> clocks, vector<pair<bool,unordered_set<string>>> & memory);
+    Token(DBM initial_v,DBM current_v,DBM final_v,
+          vector<pair<bool,unordered_set<string>>> & memory);
+    Token(DBM clocks_v,
+          vector<pair<bool,unordered_set<string>>> & memory);
     ~Token();
 
   //--------------------------------------------------------------------------//
@@ -26,7 +30,6 @@ namespace recognizer{
   //--------------------------------------------------------------------------//
     bool operator<=(Token const& tok2) const;
     void increment(double time_elapse);
-    void validate();
 
     static bool included(Token const& tok, list<Token> const& list){
       for(Token const& elmt : list){
