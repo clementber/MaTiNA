@@ -1,6 +1,6 @@
 #include "parsingDriver.hpp"
 #include "yacc.tab.hpp"
-#include <fstream>
+
 regex_driver::regex_driver ()
   : trace_scanning (false), trace_parsing (false)
 {
@@ -97,7 +97,7 @@ unordered_set<string> find_variables(string filename){
   return res;
 }
 
-int regex_driver::parse (automate::Automate* automate, const std::string &f)
+int regex_driver::parse (automate::Automate** automate, const std::string &f)
 {
   file = f;
   unordered_set<string> variables_name;
