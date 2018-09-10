@@ -48,9 +48,8 @@ void convert_to_dot(Automate* autom, ostream& output){
     }
     output << "][label=\"";
     output << state.id;
-    output << "\n";
     if(!(state.clocks_constraints.getClocks_number() == 0 || state.clocks_constraints.empty())){
-      output << " ";
+      output << "\\n";
       output_Clocks_constraint(output, state.clocks_constraints, autom->clocks);
     }
     output << "\"]\n";
@@ -65,7 +64,7 @@ void convert_to_dot(Automate* autom, ostream& output){
         output << " ";
         output_Clocks_constraint(output, trans->clocks_constraints, autom->clocks);
       }
-      output << ">]";
+      output << ">]\n";
     }
   }
   output << "}";
