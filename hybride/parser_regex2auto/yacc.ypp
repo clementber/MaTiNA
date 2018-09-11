@@ -19,14 +19,14 @@
 %define parse.trace
 %define parse.error verbose
 
-%parse-param {tre_ast::AST_node** generate_ast}
-%parse-param {std::map<std::string,int> const& variables_id}
 
 %code requires
 {
   class regex_driver;
 }
 // The parsing context.
+%parse-param {tnure_ast::AST_node** generate_ast}
+%parse-param {std::map<std::string,int> const& variables_id}
 %param { regex_driver& driver }
 
 %locations
@@ -115,36 +115,36 @@ regexp :
     }
     $$ = new AST_FREES(ids);
   }
-  | CONST { 
+  | CONST {
     try{
       int id = variables_id.at(get<0>($1));
-      $$ = new AST_USE(id); 
+      $$ = new AST_USE(id);
     }catch(out_of_range const& oor){
       $$ = new AST_CONST($1);
     }
   }
-  |FRESH CONST { 
+  |FRESH CONST {
     try{
       int id = variables_id.at(get<0>($2));
-      $$ = new AST_FRESH(id); 
+      $$ = new AST_FRESH(id);
     }catch(out_of_range const& oor){
       cout << "Error during the detection of variables : " << $2 << "shall be a variable.\n";
       exit(1);
     }
   }
-  |CONST FREE { 
+  |CONST FREE {
     try{
       int id = variables_id.at(get<0>($1));
-      $$ = new AST_FREE(id); 
+      $$ = new AST_FREE(id);
     }catch(out_of_range const& oor){
       cout << "Error during the detection of variables : " << $1 << "shall be a variable.\n";
       exit(1);
     }
   }
-  |FRESH CONST FREE { 
+  |FRESH CONST FREE {
     try{
       int id = variables_id.at(get<0>($2));
-      $$ = new AST_FRESH_FREE(id); 
+      $$ = new AST_FRESH_FREE(id);
     }catch(out_of_range const& oor){
       cout << "Error during the detection of variables : " << $2 << "shall be a variable.\n";
       exit(1);

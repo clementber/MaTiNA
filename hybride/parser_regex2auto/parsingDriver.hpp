@@ -1,7 +1,7 @@
 #ifndef REGEX_DRIVER_HH
 # define REGE_DRIVER_HH
 # include <string>
-# include "../time_automata/grammar.hpp"
+# include "../hybride_automata/grammar.hpp"
 # include "ast.hpp"
 # include "yacc.tab.hpp"
 

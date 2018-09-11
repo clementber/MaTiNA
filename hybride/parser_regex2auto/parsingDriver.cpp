@@ -34,14 +34,11 @@ unordered_set<string> find_variables(string filename){
       }
       variable = true;
     }else if (c == '!'){
-      if(buffer == ""){
-        cout << "Fail to parse. Misplaced '!'\n";
-        file.close();
-        exit(1);
+      if(buffer != ""){
+        res.insert(buffer);
+        variable = false;
+        buffer = "";
       }
-      res.insert(buffer);
-      variable = false;
-      buffer = "";
     }else if(c == '['){
       bool over = false;
       while(file.get(c)){
@@ -108,10 +105,15 @@ int regex_driver::parse (automate::Automate** automate, const std::string &f)
     variables_id[var_name] = cpt++;
   }
   scan_begin ();
-  yy::parser parser (automate, variables_id, *this);
+  tre_ast::AST_node * ast;
+  yy::parser parser (ast, variables_id, *this);
   parser.set_debug_level (trace_parsing);
   int res = parser.parse ();
   scan_end ();
+  if(res == 0){
+    *automate = ast->convert();
+    delete ast;
+  }
 
   return res;
 }

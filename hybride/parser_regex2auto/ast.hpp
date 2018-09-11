@@ -9,7 +9,7 @@
 using namespace automate;
 using namespace std;
 
-namespace tre_ast{
+namespace tnure_ast{
 
   class AST_node{
   public:
@@ -80,11 +80,11 @@ namespace tre_ast{
     Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
   };
 
-  class AST_EVENT : public AST_node{
+  class AST_CONST : public AST_node{
   public:
     string event;
-    AST_EVENT(string event);
-    ~AST_EVENT();
+    AST_CONST(string event);
+    ~AST_CONST();
     Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
   };
 
