@@ -70,7 +70,7 @@ regexp :
     $$= new AST_CONCAT($1,$3);
   }
   |regexp AND regexp {
-    $$= new AST_CONCAT($1,$3);
+    $$= new AST_AND($1,$3);
   }
   |LBALISE regexp RBALISE LCROCHET NUMBER RCROCHET {
     $$ = new AST_DELAY($2, Bound(-1*$5), Bound($5));
@@ -118,7 +118,7 @@ regexp :
   | CONST {
     try{
       int id = variables_id.at(get<0>($1));
-      $$ = new AST_USE(id);
+      $$ = new AST_USE(id, false, false);
     }catch(out_of_range const& oor){
       $$ = new AST_CONST($1);
     }
@@ -126,7 +126,7 @@ regexp :
   |FRESH CONST {
     try{
       int id = variables_id.at(get<0>($2));
-      $$ = new AST_FRESH(id);
+      $$ = new AST_USE(id, true, false);
     }catch(out_of_range const& oor){
       cout << "Error during the detection of variables : " << $2 << "shall be a variable.\n";
       exit(1);
@@ -135,7 +135,7 @@ regexp :
   |CONST FREE {
     try{
       int id = variables_id.at(get<0>($1));
-      $$ = new AST_FREE(id);
+      $$ = new AST_USE(id, false, true);
     }catch(out_of_range const& oor){
       cout << "Error during the detection of variables : " << $1 << "shall be a variable.\n";
       exit(1);
@@ -144,7 +144,7 @@ regexp :
   |FRESH CONST FREE {
     try{
       int id = variables_id.at(get<0>($2));
-      $$ = new AST_FRESH_FREE(id);
+      $$ = new AST_USE(id, true, true);
     }catch(out_of_range const& oor){
       cout << "Error during the detection of variables : " << $2 << "shall be a variable.\n";
       exit(1);
