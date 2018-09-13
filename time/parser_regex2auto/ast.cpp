@@ -54,7 +54,7 @@ Automate * AST_OR::convert(vector<Clock*> & clocks, int & cpt_state, int & init_
   }
 
   autom1->states.push_back(State("s"+to_string(cpt_state++)));
-  State * new_initial_state = &(*(--autom2->states.end()));
+  State * new_initial_state = &(*(--autom1->states.end()));
   DBM eps_constraint(clocks.size());
   eps_constraint.matrice[1][0] = Bound(0);
   eps_constraint.matrice[0][1] = Bound(0);
@@ -62,7 +62,7 @@ Automate * AST_OR::convert(vector<Clock*> & clocks, int & cpt_state, int & init_
                                                               autom1->start,
                                                               {}, eps_constraint,
                                                               {}));
-  autom1->transitions[new_initial_state].push_back(Transition(autom1->start,
+  autom1->transitions[new_initial_state].push_back(Transition(new_initial_state,
                                                   dictionnary[autom2->start],
                                                   {}, eps_constraint,{}));
   autom1->start = new_initial_state;
@@ -171,6 +171,7 @@ AST_CONCAT::~AST_CONCAT(){
 
 Automate * AST_CONCAT::convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk){
   Automate * autom_end = end->convert(clocks,cpt_state,init_clk);
+  vector<Clock*> to_reset = clocks;
   Automate * autom_begin = begin->convert(clocks,cpt_state,init_clk);
 
   autom_end->alphabet.insert(autom_begin->alphabet.begin(), autom_begin->alphabet.end());
@@ -202,14 +203,14 @@ Automate * AST_CONCAT::convert(vector<Clock*> & clocks, int & cpt_state, int & i
       transition.origine = newState;
       transition.destination = dictionnary[transition.destination];
       if(transition.destination == autom_end->start){
-        transition.clocks_to_reset = unordered_set<Clock*>(autom_end->clocks.begin(),autom_end->clocks.end());
+        transition.clocks_to_reset = to_reset;
       }
       autom_end->transitions[newState].push_back(transition);
     }
   }
 
   autom_end->start = dictionnary[autom_begin->start];
-  delete(autom_begin);
+  delete autom_begin;
   return autom_end;
 }
 
