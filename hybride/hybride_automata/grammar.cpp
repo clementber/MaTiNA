@@ -351,8 +351,11 @@ Epsilon_Transition::Epsilon_Transition(State* const& ori, State* const& dest, ve
 Epsilon_Transition::Epsilon_Transition(State* const& ori, State* const& dest)
     : Transition(ori,dest){}
 
-Epsilon_Transition::~Epsilon_Transition() = default;
+Transition* Epsilon_Transition::clone(){
+  return new Epsilon_Transition(*this);
+}
 
+Epsilon_Transition::~Epsilon_Transition() = default;
 
 string Epsilon_Transition::to_string(){
   stringstream res;
@@ -372,6 +375,10 @@ string Epsilon_Transition::to_string(){
     }
   }
   return res.str();
+}
+
+bool Epsilon_Transition::epsilon(){
+  return true;
 }
 
 //The Epsilon_Transition are the only transition
@@ -547,6 +554,10 @@ Event_Transition::Event_Transition(State* const& ori, State* const& dest,
 Event_Transition::Event_Transition(State* const& ori, State* const& dest, int p_variable)
     : Transition(ori,dest), variable(p_variable){}
 
+Transition* Event_Transition::clone(){
+  return new Event_Transition(*this);
+}
+
 Event_Transition::~Event_Transition() = default;
 
 string Event_Transition::to_string(){
@@ -563,6 +574,10 @@ string Event_Transition::to_string(){
     }
   }
   return res.str() ;
+}
+
+bool Event_Transition::epsilon(){
+  return false;
 }
 
 pair<DBM,vector<pair<bool,unordered_set<string>>>> Event_Transition::accept_event(
@@ -596,6 +611,10 @@ Constant_Transition::Constant_Transition(State* const& ori, State* const& dest, 
 Constant_Transition::Constant_Transition(State* const& ori, State* const& dest, string p_constant)
     : Transition(ori,dest), constant(p_constant){}
 
+Transition* Constant_Transition::clone(){
+  return new Constant_Transition(*this);
+}
+
 Constant_Transition::~Constant_Transition() = default;
 
 string Constant_Transition::to_string(){
@@ -619,6 +638,10 @@ string Constant_Transition::to_string(){
     }
   }
   return res.str();
+}
+
+bool Constant_Transition::epsilon(){
+  return false;
 }
 
 pair<DBM,vector<pair<bool,unordered_set<string>>>> Constant_Transition::accept_constant(

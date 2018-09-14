@@ -130,14 +130,16 @@ namespace automate{
                vector<int> freez, DBM const& clocks_interv,
                unordered_set<Clock*> const& clock_to_reset);
     Transition(State* const& ori, State* const& dest);
+    virtual Transition * clone()=0;
     virtual ~Transition();
     virtual string to_string();
+    virtual bool triggered()=0;
     virtual pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
         DBM initial_clocks_status, DBM current_clocks_status,
         DBM final_clocks_status,vector<pair<bool,unordered_set<string>>> memory);
     virtual pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
         DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory);
-    /**The parameter 'event' isn't present in the unordered set 'alphabet' of 
+    /**The parameter 'event' isn't present in the unordered set 'alphabet' of
     * the automaton containing this transition.
     */
     virtual pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_event(
@@ -154,8 +156,10 @@ namespace automate{
                vector<int> freez, DBM const& clocks_interv,
                unordered_set<Clock*> const& clock_to_reset);
     Epsilon_Transition(State* const& ori, State* const& dest);
+    Transition * clone();
     ~Epsilon_Transition();
     string to_string();
+    bool triggered();
     pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
         DBM initial_clocks_status, DBM current_clocks_status,
         DBM final_clocks_status,vector<pair<bool,unordered_set<string>>> memory);
@@ -171,8 +175,10 @@ namespace automate{
                vector<int> freez, DBM const& clocks_interv,
                unordered_set<Clock*> const& clock_to_reset, int variable);
     Event_Transition(State* const& ori, State* const& dest, int variable);
+    Transition * clone();
     ~Event_Transition();
     string to_string();
+    bool triggered();
     pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_event(
         DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
         string event);
@@ -187,8 +193,10 @@ namespace automate{
                unordered_set<Clock*> const& clock_to_reset,
                string constant);
     Constant_Transition(State* const& ori, State* const& dest, string constant);
+    Transition * clone();
     ~Constant_Transition();
     string to_string();
+    bool triggered();
     pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_constant(
         DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
         string constant);

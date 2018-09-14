@@ -264,14 +264,14 @@ Automate * AST_KSTAR::convert(vector<Clock*> & clocks, int & cpt_state, int & in
     for(Transition * trans : element.second){
       for(State * endState : a->endStates){
         if(endState == trans->destination){
-          Transition * new_trans = new Transition(trans); /*TODO*/
+          Transition * new_trans = trans->clone();
           new_trans->destination = a->start;
           for(unsigned int i = 1; i < clocks.size(); i++){
             if(clocks[i]!= nullptr){
               new_trans->clocks_to_reset.insert(clocks[i]);
             }
           }
-          if(!trans.epsilon()){
+          if(trans->triggered()){
             new_trans->clocks_to_reset.insert(clocks[0]);
           }
           a->transitions[element.first].push_back(new_trans);
@@ -344,14 +344,14 @@ Automate * AST_PLUS::convert(vector<Clock*> & clocks, int & cpt_state, int & ini
     for(Transition * trans : element.second){
       for(State * endState : a->endStates){
         if(endState == trans->destination){
-          Transition * new_trans = new Transition(trans); /*TODO*/
+          Transition * new_trans = trans->clone();
           new_trans->destination = a->start;
           for(unsigned int i = 1; i < clocks.size(); i++){
             if(clocks[i]!= nullptr){
               new_trans->clocks_to_reset.insert(clocks[i]);
             }
           }
-          if(!trans.epsilon()){
+          if(trans->triggered()){
             new_trans->clocks_to_reset.insert(clocks[0]);
           }
           a->transitions[element.first].push_back(new_trans);
@@ -403,7 +403,7 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
       State * t1ori = trans1->origine;
       State * t1dest = trans1->destination;
       for(State & state2 : autom2->states){
-        Transition * new_trans = new Transition(trans1);/*TODO*/
+        Transition * new_trans = trans1->clone();
         new_trans->origine = dictionnary[t1ori][&state2];
         new_trans->destination=dictionnary[t1dest][&state2];
         a->transitions[new_trans->origine].push_back(new_trans);
@@ -416,7 +416,7 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
       State * t2ori = trans2.origine;
       State * t2dest = trans2.destination;
       for(State & state1 : autom1->states){
-        Transition * new_trans = new Transition(trans2);/*TODO*/
+        Transition * new_trans = trans2->clone();
         new_trans->origine = dictionnary[&state1][t2ori];
         new_trans->destination = dictionnary[&state1][t2dest];
         a->transitions[trans2.origine].push_back(new_trans);
