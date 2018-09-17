@@ -1,0 +1,20 @@
+s20 #S
+s0
+s2
+s4
+s6
+s7 #E
+s8s14
+s10s16
+s12s18
+s13s19 #E
+//
+s20 {s0, s8s14} #N
+s0 s2 a c0
+s2 s4 truc
+s4 s6 b [1 <= c0 <= 5]
+s6 s7 pouet
+
+s8s14 s10s16 a c2
+s10s16 s12s18 b [1<= c1 <= 2]
+s12s18 s13s19 c [1<= c2 <= 2]

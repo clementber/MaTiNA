@@ -1,0 +1,12 @@
+init #S
+left
+middle
+top
+bot
+right #E [c <= 1.2]
+//
+init left #N c [0.5<c]
+left middle #N [1<c<2]
+middle top #N c [0.3 < c]
+middle bot #N [c < 0.1]
+{top, middle, bot} right a

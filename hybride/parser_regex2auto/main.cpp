@@ -28,10 +28,14 @@ int main(int argc, char *argv[]){
     cout << "\t" << st.id << "\n";
     if(!(st.clocks_constraints.getClocks_number() == 0 || st.clocks_constraints.empty())){
       output_Clocks_constraint(cout, st.clocks_constraints, input_autom->clocks);
+      cout << "\n";
     }
-    cout << "\n";
   }
-  cout << "List of edges : " << input_autom->transitions.size() << "\n";
+  int number_transition = 0;
+  for( pair<State*, vector<Transition*>> elmt : input_autom->transitions){
+    number_transition += elmt.second.size();
+  }
+  cout << "List of edges : " << number_transition << "\n";
   for(State & st : input_autom->states){
     for(Transition * trans : input_autom->transitions[&st]){
       cout << "\t" << trans->origine->id << "->" << trans->destination->id << " : ";
@@ -53,17 +57,25 @@ int main(int argc, char *argv[]){
         }
         cout << "}";
       }
+      if(!trans->clocks_to_reset.empty()){
+        cout << " clocks to reset : {";
+        unordered_set<Clock*>::iterator ite = trans->clocks_to_reset.begin();
+        cout << (*ite)->name;
+        for(ite++;ite != trans->clocks_to_reset.end(); ite++){
+          cout << ", " << (*ite)->name;
+        }
+        cout << "}";
+      }
       cout << "\n";
       if(!(trans->clocks_constraints.getClocks_number() == 0 || trans->clocks_constraints.empty())){
         output_Clocks_constraint(cout, trans->clocks_constraints, input_autom->clocks);
+        cout << "\n";
       }
-      cout << "\n";
     }
   }
 
  if(argc >=3){
    ofstream output(argv[2]);
-   cout << "Fichier .dot : " << argv[2] << "\n";
    convert_to_dot(input_autom,output);
    output.close();
  }

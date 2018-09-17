@@ -419,7 +419,7 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
         Transition * new_trans = trans2->clone();
         new_trans->origine = dictionnary[&state1][t2ori];
         new_trans->destination = dictionnary[&state1][t2dest];
-        a->transitions[trans2->origine].push_back(new_trans);
+        a->transitions[new_trans->origine].push_back(new_trans);
       }
     }
   }

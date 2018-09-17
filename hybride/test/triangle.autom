@@ -71,8 +71,3 @@ l3xz_y end $Z [1 <= c0 < 600]
 l3xz_z end $Y [1 <= c0 < 600]
 l3yz_x end $Z [1 <= c0 < 600]
 l3yz_z end $X [1 <= c0 < 600]
-
-end end $X
-end end $Y
-end end $Z
-end end $E alloc:E free:E

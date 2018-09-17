@@ -1,0 +1,8 @@
+center #S #E
+top
+bot
+//
+center top #N
+center bot #N
+top center #N c [c < 4]
+bot center #N [3 < c]
