@@ -2,7 +2,7 @@
 
 #define AST_TIMEREGEXP
 
-#include "../time_automata/grammar.hpp"
+#include "../hybride_automata/grammar.hpp"
 #include <string>
 #include <vector>
 
@@ -94,42 +94,44 @@ namespace tnure_ast{
     ~AST_SHUFFLE();
     Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
   };
+
+  class AST_ALLOCS : public AST_node{
+  public:
+    AST_node *pattern;
+    vector<int> vars;
+
+    AST_ALLOCS(AST_node *pattern, vector<int> vars);
+    ~AST_ALLOCS();
+    Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
+  };
+
+  class AST_FREES : public AST_node{
+  public:
+    AST_node *pattern;
+    vector<int> vars;
+
+    AST_FREES(AST_node *pattern, vector<int> vars);
+    ~AST_FREES();
+    Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
+  };
+
+  class AST_CONST : public AST_node{
+  public:
+    string event;
+
+    AST_CONST(string event);
+    ~AST_CONST();
+    Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
+  };
+
+  class AST_USE : public AST_node{
+  public:
+    int var;
+    bool fresh, free;
+
+    AST_USE(int var, bool fresh, bool free);
+    ~AST_USE();
+    Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
+  };
 };
-
-class AST_ALLOCS : public AST_node{
-  AST_node *pattern;
-  vector<int> vars;
-
-  AST_ALLOCS(AST_node *pattern, vector<int> vars);
-  ~AST_ALLOCS();
-  Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
-};
-
-class AST_FREES : public AST_node{
-  AST_node *pattern;
-  vector<int> vars;
-
-  AST_FREES(AST_node *pattern, vector<int> vars);
-  ~AST_FREES();
-  Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
-};
-
-class AST_CONST : public AST_node{
-public:
-  string event;
-
-  AST_CONST(string event);
-  ~AST_CONST();
-  Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
-};
-
-class AST_USE : public AST_node{
-  int var;
-  bool fresh, free;
-
-  AST_USE(int var, bool fresh, bool free);
-  ~AST_USE();
-  Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
-};
-
 #endif

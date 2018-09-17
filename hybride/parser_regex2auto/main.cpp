@@ -1,8 +1,8 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "../time_automata/toDot.hpp"
-#include "../time_automata/grammar.hpp"
+#include "../hybride_automata/toDot.hpp"
+#include "../hybride_automata/grammar.hpp"
 #include "parsingDriver.hpp"
 
 using namespace std;
@@ -23,35 +23,39 @@ int main(int argc, char *argv[]){
   }
 
   cout << "Value returned by parse : " << res <<"\n";
-  cout << "Number of state : " << input_autom->states.size() << "\nStates names : \n";
-  for(automate::State st : input_autom->states){
+  cout << "Number of state : " << input_autom->states.size() << "\nList of states : \n";
+  for(State st : input_autom->states){
     cout << "\t" << st.id << "\n";
+    if(!(st.clocks_constraints.getClocks_number() == 0 || st.clocks_constraints.empty())){
+      output_Clocks_constraint(cout, st.clocks_constraints, input_autom->clocks);
+    }
+    cout << "\n";
   }
-  cout << "clocks names : \n";
-  for(automate::Clock * cl : input_autom->clocks)
-    cout << "\t"<< cl->name << " : " << cl->getId() << "\n";
   cout << "List of edges : " << input_autom->transitions.size() << "\n";
-  for(automate::State & st : input_autom->states){
-    for(automate::Transition & trans : input_autom->transitions[&st]){
-      cout << "\t" << trans.origine->id << "->" << trans.destination->id << "\n";
-      cout << "\t\tThe clocks_constraints DBM :" <<"\n";
-      for(int i=0; i<trans.clocks_constraints.length;i++){
-        cout << "\t\t\t";
-        for(int j=0; j<trans.clocks_constraints.length;j++){
-          double value = trans.clocks_constraints.matrice[i][j].value;
-          cout << "(";
-          if(value == numeric_limits<double>::max())
-            cout<< "inf";
-          else
-            cout << value;
-          cout << "," << trans.clocks_constraints.matrice[i][j].inclusion <<")";
-          cout << "\t";
+  for(State & st : input_autom->states){
+    for(Transition * trans : input_autom->transitions[&st]){
+      cout << "\t" << trans->origine->id << "->" << trans->destination->id << " : ";
+      cout << trans->Transition::to_string() ;
+
+      if(!trans->allocations.empty()){
+        cout << " nu : {";
+        cout << trans->allocations[0];
+        for(unsigned int i = 1;i< trans->allocations.size(); i++){
+          cout << ", " << trans->allocations[i];
         }
-        cout << "\n";
+        cout << "}";
       }
-      cout << "\t\t" << "Clocks to reset : ";
-      for(Clock* clk : trans.clocks_to_reset){
-        cout  << clk->name <<" ";
+      if(!trans->frees.empty()){
+        cout << " free : {";
+        cout << trans->frees[0];
+        for(unsigned int i = 1;i< trans->frees.size(); i++){
+          cout << ", " << trans->frees[i];
+        }
+        cout << "}";
+      }
+      cout << "\n";
+      if(!(trans->clocks_constraints.getClocks_number() == 0 || trans->clocks_constraints.empty())){
+        output_Clocks_constraint(cout, trans->clocks_constraints, input_autom->clocks);
       }
       cout << "\n";
     }

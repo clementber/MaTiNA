@@ -43,13 +43,13 @@ static yy::location loc;
 "or"|"|" return (yy::parser::make_OR(loc));
 "," return (yy::parser::make_COMMA(loc));
 "{" return (yy::parser::make_LACCOLADE(loc));
-"}" return (yy::parser::make_RACCOLADE(loc))
+"}" return (yy::parser::make_RACCOLADE(loc));
 "(" return (yy::parser::make_LPARENTHESE(loc));
 ")" return (yy::parser::make_RPARENTHESE(loc));
 "[" return (yy::parser::make_LCROCHET(loc));
 "]" return (yy::parser::make_RCROCHET(loc));
 [0-9]+(\.[0-9]+)? return yy::parser::make_NUMBER(std::stod(yytext),loc);
-[[:alpha:]]([[:alnum:]]|"-"|"_")* {return yy::parser::make_EVENT(yytext,loc);}
+[[:alpha:]]([[:alnum:]]|"-"|"_")* {return yy::parser::make_CONST(yytext,loc);}
 <<EOF>> { return yyterminate(); }
 . { cout << "Symbol non reconnu : " << yytext <<"\n"; }
 %%

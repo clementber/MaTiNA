@@ -377,7 +377,7 @@ string Epsilon_Transition::to_string(){
   return res.str();
 }
 
-bool Epsilon_Transition::epsilon(){
+bool Epsilon_Transition::triggerable(){
   return true;
 }
 
@@ -576,7 +576,7 @@ string Event_Transition::to_string(){
   return res.str() ;
 }
 
-bool Event_Transition::epsilon(){
+bool Event_Transition::triggerable(){
   return false;
 }
 
@@ -640,7 +640,7 @@ string Constant_Transition::to_string(){
   return res.str();
 }
 
-bool Constant_Transition::epsilon(){
+bool Constant_Transition::triggerable(){
   return false;
 }
 

@@ -133,7 +133,7 @@ namespace automate{
     virtual Transition * clone()=0;
     virtual ~Transition();
     virtual string to_string();
-    virtual bool triggered()=0;
+    virtual bool triggerable()=0;
     virtual pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
         DBM initial_clocks_status, DBM current_clocks_status,
         DBM final_clocks_status,vector<pair<bool,unordered_set<string>>> memory);
@@ -159,7 +159,7 @@ namespace automate{
     Transition * clone();
     ~Epsilon_Transition();
     string to_string();
-    bool triggered();
+    bool triggerable();
     pair<vector<DBM>,vector<pair<bool,unordered_set<string>>>> accept_epsilon(
         DBM initial_clocks_status, DBM current_clocks_status,
         DBM final_clocks_status,vector<pair<bool,unordered_set<string>>> memory);
@@ -178,7 +178,7 @@ namespace automate{
     Transition * clone();
     ~Event_Transition();
     string to_string();
-    bool triggered();
+    bool triggerable();
     pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_event(
         DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
         string event);
@@ -196,7 +196,7 @@ namespace automate{
     Transition * clone();
     ~Constant_Transition();
     string to_string();
-    bool triggered();
+    bool triggerable();
     pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_constant(
         DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
         string constant);

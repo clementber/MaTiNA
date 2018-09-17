@@ -3,7 +3,7 @@
   #include <string>
   #include "ast.hpp"
   #include "yacc.tab.hpp"
-  using namespace tre_ast;
+  using namespace tnure_ast;
   using namespace std;
 
   yy::parser::symbol_type yylex (yy::parser::semantic_type *arg);
@@ -43,8 +43,7 @@
 %token END 0 "end of file"
 %token <double> NUMBER
 %token <std::string> CONST
-%type <tre_ast::AST_node*> regexp
-%type <std::tuple<std::string,bool,bool>> input
+%type <tnure_ast::AST_node*> regexp
 %type <std::unordered_set<std::string>> vars
 
 %token LBALISE RBALISE COMMA LPARENTHESE RPARENTHESE LCROCHET RCROCHET
@@ -93,31 +92,31 @@ regexp :
   }
   | FRESH LACCOLADE vars RACCOLADE regexp {
     vector<int> ids;
-    try{
-      for(string const& var : $3){
-        ids.push_back(variables_id.at(var));
+    for(string const& var : $3){
+      try{
+          ids.push_back(variables_id.at(var));
+      }catch(out_of_range const& oor){
+        cout << "Error during the detection of variables : " << var << "shall all be a variable.\n";
+        exit(1);
       }
-    }catch(out_of_range const& oor){
-      cout << "Error during the detection of variables : " << $3 << "shall all be a variable.\n";
-      exit(1);
     }
-    $$ = new AST_ALLOCS(ids);
+    $$ = new AST_ALLOCS($5, ids);
   }
   | regexp LACCOLADE vars RACCOLADE FREE {
     vector<int> ids;
-    try{
-      for(string const& var : $3){
-        ids.push_back(variables_id.at(var));
+    for(string const& var : $3){
+      try{
+          ids.push_back(variables_id.at(var));
+      }catch(out_of_range const& oor){
+        cout << "Error during the detection of variables : " << var << "shall all be a variable.\n";
+        exit(1);
       }
-    }catch(out_of_range const& oor){
-      cout << "Error during the detection of variables : " << $3 << "shall all be a variable.\n";
-      exit(1);
     }
-    $$ = new AST_FREES(ids);
+    $$ = new AST_FREES($1, ids);
   }
   | CONST {
     try{
-      int id = variables_id.at(get<0>($1));
+      int id = variables_id.at($1);
       $$ = new AST_USE(id, false, false);
     }catch(out_of_range const& oor){
       $$ = new AST_CONST($1);
@@ -125,7 +124,7 @@ regexp :
   }
   |FRESH CONST {
     try{
-      int id = variables_id.at(get<0>($2));
+      int id = variables_id.at($2);
       $$ = new AST_USE(id, true, false);
     }catch(out_of_range const& oor){
       cout << "Error during the detection of variables : " << $2 << "shall be a variable.\n";
@@ -134,7 +133,7 @@ regexp :
   }
   |CONST FREE {
     try{
-      int id = variables_id.at(get<0>($1));
+      int id = variables_id.at($1);
       $$ = new AST_USE(id, false, true);
     }catch(out_of_range const& oor){
       cout << "Error during the detection of variables : " << $1 << "shall be a variable.\n";
@@ -143,7 +142,7 @@ regexp :
   }
   |FRESH CONST FREE {
     try{
-      int id = variables_id.at(get<0>($2));
+      int id = variables_id.at($2);
       $$ = new AST_USE(id, true, true);
     }catch(out_of_range const& oor){
       cout << "Error during the detection of variables : " << $2 << "shall be a variable.\n";

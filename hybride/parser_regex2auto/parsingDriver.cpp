@@ -1,5 +1,6 @@
 #include "parsingDriver.hpp"
 #include "yacc.tab.hpp"
+#include <fstream>
 
 regex_driver::regex_driver ()
   : trace_scanning (false), trace_parsing (false)
@@ -105,8 +106,8 @@ int regex_driver::parse (automate::Automate** automate, const std::string &f)
     variables_id[var_name] = cpt++;
   }
   scan_begin ();
-  tre_ast::AST_node * ast;
-  yy::parser parser (ast, variables_id, *this);
+  tnure_ast::AST_node * ast;
+  yy::parser parser (&ast, variables_id, *this);
   parser.set_debug_level (trace_parsing);
   int res = parser.parse ();
   scan_end ();

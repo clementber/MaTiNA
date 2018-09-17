@@ -15,6 +15,13 @@ int main(int argc, char *argv[]){
   autom_driver parser;
   automate::Automate*input_autom = new automate::Automate();
   int res = parser.parse (input_autom, argv[1]);
+  if(res != 0){
+    if(input_autom != nullptr){
+      delete input_autom;
+    }
+    return 1;
+  }
+  
   cout << "Value returned by parse : " << res <<"\n";
   cout << "Number of state : " << input_autom->states.size() << "\nList of states : \n";
   for(State st : input_autom->states){
