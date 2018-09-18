@@ -59,9 +59,8 @@ void convert_to_dot(Automate* autom, ostream& output){
     for(Transition* trans : autom->transitions[&state]){
       output << trans->origine->id << "->" << trans->destination->id <<"[label=<";
       output << trans->to_string();
-      output << "<br/>";
       if(!(trans->clocks_constraints.getClocks_number() == 0 || trans->clocks_constraints.empty())){
-        output << " ";
+        output << "<br/>";
         output_Clocks_constraint(output, trans->clocks_constraints, autom->clocks);
       }
       output << ">]\n";

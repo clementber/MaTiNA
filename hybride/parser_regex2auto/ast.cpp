@@ -1,6 +1,7 @@
 #include "ast.hpp"
 #include <unordered_set>
 #include <iostream>
+#include <string> 
 
 using namespace std;
 using namespace automate;
@@ -80,7 +81,12 @@ AST_CONCAT::~AST_CONCAT(){
 
 Automate * AST_CONCAT::convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk){
   Automate * autom_end = end->convert(clocks,cpt_state,init_clk);
-  vector<Clock*> to_reset = clocks;
+  vector<Clock*> to_reset;
+  for(int i= 1; i<init_clk; i++){
+    if(clocks[i] != nullptr){
+      to_reset.push_back(clocks[i]);
+    }
+  } 
   Automate * autom_begin = begin->convert(clocks,cpt_state,init_clk);
 
   autom_end->alphabet.insert(autom_begin->alphabet.begin(), autom_begin->alphabet.end());
@@ -112,7 +118,7 @@ Automate * AST_CONCAT::convert(vector<Clock*> & clocks, int & cpt_state, int & i
       transition->origine = newState;
       transition->destination = dictionnary[transition->destination];
       if(transition->destination == autom_end->start){
-        transition->clocks_to_reset = unordered_set<Clock*>(to_reset.begin(),to_reset.end());
+        transition->clocks_to_reset.insert(to_reset.begin(),to_reset.end());
       }
       autom_end->transitions[newState].push_back(transition);
     }
@@ -224,7 +230,7 @@ AST_DELAY::~AST_DELAY(){
 
 Automate * AST_DELAY::convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk){
   Automate *a = pattern->convert(clocks,cpt_state,init_clk);
-  clocks [init_clk] = new Clock("c"+init_clk, init_clk+1);
+  clocks [init_clk] = new Clock("c"+to_string(init_clk), init_clk+1);
   init_clk++;
   for(State & state : a->states){
     if(state.clocks_constraints.getClocks_number() == 0){
@@ -259,7 +265,6 @@ AST_KSTAR::~AST_KSTAR(){
 
 Automate * AST_KSTAR::convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk){
   Automate *a = pattern->convert(clocks, cpt_state, init_clk);
-
   for(pair<State *,vector<Transition*>> element : a->transitions){
     for(Transition * trans : element.second){
       for(State * endState : a->endStates){
@@ -439,7 +444,7 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
 }
 
 AST_ALLOCS::AST_ALLOCS(AST_node *pattern, vector<int> vars)
-                      :AST_node(pattern->number_clocks), vars(vars){}
+                      :AST_node(pattern->number_clocks), pattern(pattern), vars(vars){}
 
 AST_ALLOCS::~AST_ALLOCS(){delete pattern;}
 
@@ -458,7 +463,7 @@ Automate * AST_ALLOCS::convert(vector<Clock*> & clocks, int& cpt_state, int& ini
 }
 
 AST_FREES::AST_FREES(AST_node *pattern, vector<int> vars)
-                    :AST_node(pattern->number_clocks), vars(vars) {}
+                    :AST_node(pattern->number_clocks), pattern(pattern), vars(vars) {}
 
 AST_FREES::~AST_FREES(){delete pattern;}
 
@@ -466,13 +471,15 @@ Automate * AST_FREES::convert(vector<Clock*> & clocks, int& cpt_state, int& init
   Automate *a = pattern->convert(clocks,cpt_state,init_clk);
   a->states.push_back(State("s"+to_string(cpt_state++)));
   std::list<State>::iterator ite = a->states.end();
-  ite--;
-  Transition * epsi_trans = new Epsilon_Transition(&(*ite), a->start);
-  epsi_trans->clocks_constraints = DBM(clocks.size());
-  epsi_trans->clocks_constraints.matrice[1][0] = Bound(0);
-  epsi_trans->frees = vars;
-  a->transitions[&(*ite)].push_back(epsi_trans);
-  a->start = &(*(ite));
+  State * new_state = &(*(--ite));
+  for(State * endState : a->endStates){
+    Transition * epsi_trans = new Epsilon_Transition(endState, new_state);
+    epsi_trans->clocks_constraints = DBM(clocks.size());
+    epsi_trans->clocks_constraints.matrice[1][0] = Bound(0);
+    epsi_trans->frees = vars;
+    a->transitions[endState].push_back(epsi_trans);
+  }
+  a->endStates = {new_state};
   return a;
 }
 
@@ -488,7 +495,8 @@ Automate * AST_CONST::convert(vector<Clock*> & clocks, int & cpt_state, int & in
   a->start = &(*ite);
   ite++;
   a->endStates.push_back(&(*(ite)));
-  Transition * trans = new Constant_Transition(a->start, a->endStates[0], {}, {}, DBM(), {clocks[0]}, event);
+  Transition * trans = new Constant_Transition(a->start, a->endStates[0], event);
+  trans->clocks_to_reset.insert(clocks[0]);
   a->transitions[a->start].push_back(trans);
   a->alphabet.insert(event);
 
@@ -508,7 +516,8 @@ Automate * AST_USE::convert(vector<Clock*> & clocks, int& cpt_state, int & init_
   a->start = &(*ite);
   ite++;
   a->endStates.push_back(&(*(ite)));
-  Transition * trans = new Event_Transition(a->start, a->endStates[0], {}, {}, DBM(), {clocks[0]}, var);
+  Transition * trans = new Event_Transition(a->start, a->endStates[0], var);
+  trans->clocks_to_reset.insert(clocks[0]);
   if(fresh){
     trans->allocations.push_back(var);
   }
@@ -516,6 +525,5 @@ Automate * AST_USE::convert(vector<Clock*> & clocks, int& cpt_state, int & init_
     trans->frees.push_back(var);
   }
   a->transitions[a->start].push_back(trans);
-
   return a;
 }

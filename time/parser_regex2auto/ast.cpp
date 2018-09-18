@@ -1,6 +1,7 @@
 #include "ast.hpp"
 #include <unordered_set>
 #include <iostream>
+#include <string> 
 
 using namespace std;
 using namespace automate;
@@ -223,7 +224,7 @@ AST_DELAY::~AST_DELAY(){
 
 Automate * AST_DELAY::convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk){
   Automate *a = pattern->convert(clocks,cpt_state,init_clk);
-  clocks [init_clk] = new Clock("c"+init_clk, init_clk+1);
+  clocks [init_clk] = new Clock("c"+to_string(init_clk), init_clk+1);
   init_clk++;
   for(State & state : a->states){
     if(state.clocks_constraints.getClocks_number() == 0){

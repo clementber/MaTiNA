@@ -340,7 +340,16 @@ pair<DBM,vector<pair<bool,unordered_set<string>>>> Transition::accept_constant(
 
 
 string Transition::to_string(){
-  return "";
+  stringstream res;
+  if(!clocks_to_reset.empty()){
+    res << "<br/>";
+    unordered_set<Clock*>::iterator ite = clocks_to_reset.begin();
+    res << (*ite)->name << ":=0";
+    for(ite++;ite != clocks_to_reset.end(); ite++){
+      res << ", " << (*ite)->name << ":=0";
+    }
+  }
+  return res.str();
 }
 
 Epsilon_Transition::Epsilon_Transition(State* const& ori, State* const& dest, vector<int> allocs,
@@ -374,6 +383,7 @@ string Epsilon_Transition::to_string(){
       res << ",<O>&nu;</O>{" << frees[i] << "}";
     }
   }
+  res << Transition::to_string();
   return res.str();
 }
 
@@ -573,6 +583,7 @@ string Event_Transition::to_string(){
       res << ",<O>&nu;</O>{" << frees[i] << "}";
     }
   }
+  res << Transition::to_string();
   return res.str() ;
 }
 
@@ -637,6 +648,7 @@ string Constant_Transition::to_string(){
       res << ",<O>&nu;</O>{" << frees[i] << "}";
     }
   }
+  res << Transition::to_string();
   return res.str();
 }
 

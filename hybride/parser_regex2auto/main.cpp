@@ -40,7 +40,6 @@ int main(int argc, char *argv[]){
     for(Transition * trans : input_autom->transitions[&st]){
       cout << "\t" << trans->origine->id << "->" << trans->destination->id << " : ";
       cout << trans->Transition::to_string() ;
-
       if(!trans->allocations.empty()){
         cout << " nu : {";
         cout << trans->allocations[0];
@@ -54,15 +53,6 @@ int main(int argc, char *argv[]){
         cout << trans->frees[0];
         for(unsigned int i = 1;i< trans->frees.size(); i++){
           cout << ", " << trans->frees[i];
-        }
-        cout << "}";
-      }
-      if(!trans->clocks_to_reset.empty()){
-        cout << " clocks to reset : {";
-        unordered_set<Clock*>::iterator ite = trans->clocks_to_reset.begin();
-        cout << (*ite)->name;
-        for(ite++;ite != trans->clocks_to_reset.end(); ite++){
-          cout << ", " << (*ite)->name;
         }
         cout << "}";
       }

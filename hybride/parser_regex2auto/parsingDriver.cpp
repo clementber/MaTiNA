@@ -114,8 +114,9 @@ int regex_driver::parse (automate::Automate** automate, const std::string &f)
   if(res == 0){
     *automate = ast->convert();
     delete ast;
+  }else{
+    cout << "ERROR : Expression Parsing fail!!\n";
   }
-
   return res;
 }
 
