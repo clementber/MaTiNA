@@ -1,7 +1,7 @@
 #include "ast.hpp"
 #include <unordered_set>
 #include <iostream>
-#include <string> 
+#include <string>
 
 using namespace std;
 using namespace automate;
@@ -22,8 +22,11 @@ Automate * AST_node::convert(){
 
 AST_node::~AST_node()=default;
 
+AST_operator::AST_operator(int number_clocks):AST_node(number_clocks){};
+AST_operator::~AST_operator()=default;
+
 AST_OR::AST_OR(AST_node * n1, AST_node * n2):
-            AST_node(n1->number_clocks+n2->number_clocks),case1(n1), case2(n2){}
+            AST_operator(n1->number_clocks+n2->number_clocks),case1(n1), case2(n2){}
 
 AST_OR::~AST_OR(){
   delete case1;
@@ -72,7 +75,7 @@ Automate * AST_OR::convert(vector<Clock*> & clocks, int & cpt_state, int & init_
 }
 
 AST_CONCAT::AST_CONCAT(AST_node* n1, AST_node* n2):
-               AST_node(n1->number_clocks+n2->number_clocks),begin(n1),end(n2){}
+               AST_operator(n1->number_clocks+n2->number_clocks),begin(n1),end(n2){}
 
 AST_CONCAT::~AST_CONCAT(){
   delete begin;
@@ -86,7 +89,7 @@ Automate * AST_CONCAT::convert(vector<Clock*> & clocks, int & cpt_state, int & i
     if(clocks[i] != nullptr){
       to_reset.push_back(clocks[i]);
     }
-  } 
+  }
   Automate * autom_begin = begin->convert(clocks,cpt_state,init_clk);
 
   autom_end->alphabet.insert(autom_begin->alphabet.begin(), autom_begin->alphabet.end());
@@ -131,7 +134,7 @@ Automate * AST_CONCAT::convert(vector<Clock*> & clocks, int & cpt_state, int & i
 }
 
 AST_AND::AST_AND(AST_node *n1, AST_node *n2):
-       AST_node(n1->number_clocks+n2->number_clocks),pattern1(n1),pattern2(n2){}
+       AST_operator(n1->number_clocks+n2->number_clocks),pattern1(n1),pattern2(n2){}
 
 AST_AND::~AST_AND(){
   delete pattern1;
@@ -222,7 +225,7 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
 }
 
 AST_DELAY::AST_DELAY(AST_node* n1, Bound inf, Bound sup):
-          AST_node(n1->number_clocks+1), pattern(n1), inf(inf), sup(sup){}
+          AST_operator(n1->number_clocks+1), pattern(n1), inf(inf), sup(sup){}
 
 AST_DELAY::~AST_DELAY(){
   delete pattern;
@@ -256,7 +259,7 @@ Automate * AST_DELAY::convert(vector<Clock*> & clocks, int & cpt_state, int & in
   return a;
 }
 
-AST_KSTAR::AST_KSTAR(AST_node * pattern): AST_node(pattern->number_clocks),
+AST_KSTAR::AST_KSTAR(AST_node * pattern): AST_operator(pattern->number_clocks),
                                           pattern(pattern){}
 
 AST_KSTAR::~AST_KSTAR(){
@@ -307,7 +310,7 @@ Automate * AST_KSTAR::convert(vector<Clock*> & clocks, int & cpt_state, int & in
 }
 
 
-AST_OPTIONAL::AST_OPTIONAL(AST_node *pattern):AST_node(pattern->number_clocks),
+AST_OPTIONAL::AST_OPTIONAL(AST_node *pattern):AST_operator(pattern->number_clocks),
                                               pattern(pattern){}
 
 AST_OPTIONAL::~AST_OPTIONAL(){
@@ -336,7 +339,7 @@ Automate * AST_OPTIONAL::convert(vector<Clock*> & clocks, int & cpt_state, int &
   return a;
 }
 
-AST_PLUS::AST_PLUS(AST_node * pattern):AST_node(pattern->number_clocks),
+AST_PLUS::AST_PLUS(AST_node * pattern):AST_operator(pattern->number_clocks),
                                        pattern(pattern){}
 
 AST_PLUS::~AST_PLUS(){
@@ -369,7 +372,7 @@ Automate * AST_PLUS::convert(vector<Clock*> & clocks, int & cpt_state, int & ini
 }
 
 AST_SHUFFLE::AST_SHUFFLE(AST_node * pattern1, AST_node * pattern2):
-                AST_node(pattern1->number_clocks+pattern2->number_clocks),
+                AST_operator(pattern1->number_clocks+pattern2->number_clocks),
                 pattern1(pattern1),pattern2(pattern2){}
 
 AST_SHUFFLE::~AST_SHUFFLE(){
@@ -443,8 +446,18 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
   return a;
 }
 
+AST_LINK::AST_LINK(AST_terminals * pattern1, AST_terminals * pattern2):
+              AST_operator(pattern1->number_clocks + pattern2->number_clocks),
+              pattern1(pattern1), pattern2(pattern2){}
+
+AST_LINK::~AST_LINK()=default;
+
+Automate * AST_LINK::convert(vector<Clock*> & clocks, int& cpt_state, int& init_clk){
+  return nullptr; //TODO
+}
+
 AST_ALLOCS::AST_ALLOCS(AST_node *pattern, vector<int> vars)
-                      :AST_node(pattern->number_clocks), pattern(pattern), vars(vars){}
+                      :AST_operator(pattern->number_clocks), pattern(pattern), vars(vars){}
 
 AST_ALLOCS::~AST_ALLOCS(){delete pattern;}
 
@@ -463,7 +476,7 @@ Automate * AST_ALLOCS::convert(vector<Clock*> & clocks, int& cpt_state, int& ini
 }
 
 AST_FREES::AST_FREES(AST_node *pattern, vector<int> vars)
-                    :AST_node(pattern->number_clocks), pattern(pattern), vars(vars) {}
+                    :AST_operator(pattern->number_clocks), pattern(pattern), vars(vars) {}
 
 AST_FREES::~AST_FREES(){delete pattern;}
 
@@ -483,7 +496,10 @@ Automate * AST_FREES::convert(vector<Clock*> & clocks, int& cpt_state, int& init
   return a;
 }
 
-AST_CONST::AST_CONST(string event):AST_node(0), event(event){}
+AST_terminals::AST_terminals(int number_clocks):AST_node(number_clocks){}
+~AST_terminals()=default;
+
+AST_CONST::AST_CONST(string event):AST_terminals(0), event(event){}
 
 AST_CONST::~AST_CONST()=default;
 
@@ -503,7 +519,7 @@ Automate * AST_CONST::convert(vector<Clock*> & clocks, int & cpt_state, int & in
   return a;
 }
 
-AST_USE::AST_USE(int var, bool fresh, bool free):AST_node(0),var(var),
+AST_USE::AST_USE(int var, bool fresh, bool free):AST_terminals(0),var(var),
                                                  fresh(fresh), free(free) {}
 
 AST_USE::~AST_USE()=default;
