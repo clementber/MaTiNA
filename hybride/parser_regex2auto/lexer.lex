@@ -48,6 +48,8 @@ static yy::location loc;
 ")" return (yy::parser::make_RPARENTHESE(loc));
 "[" return (yy::parser::make_LCROCHET(loc));
 "]" return (yy::parser::make_RCROCHET(loc));
+"~>" return (yy::parser::make_LINK(loc));
+"@" return (yy::parser::make_ALPHA(loc));
 [0-9]+(\.[0-9]+)? return yy::parser::make_NUMBER(std::stod(yytext),loc);
 [[:alpha:]]([[:alnum:]]|"-"|"_")* {return yy::parser::make_CONST(yytext,loc);}
 <<EOF>> { return yyterminate(); }

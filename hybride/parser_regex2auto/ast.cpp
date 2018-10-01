@@ -447,13 +447,68 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
 }
 
 AST_LINK::AST_LINK(AST_terminals * pattern1, AST_terminals * pattern2):
-              AST_operator(pattern1->number_clocks + pattern2->number_clocks),
+              AST_terminals(pattern1->number_clocks + pattern2->number_clocks),
               pattern1(pattern1), pattern2(pattern2){}
 
 AST_LINK::~AST_LINK()=default;
 
 Automate * AST_LINK::convert(vector<Clock*> & clocks, int& cpt_state, int& init_clk){
-  return nullptr; //TODO
+  Automate * autom_end = pattern2->convert(clocks,cpt_state,init_clk);
+  vector<Clock*> to_reset;
+  for(int i= 1; i<init_clk; i++){
+    if(clocks[i] != nullptr){
+      to_reset.push_back(clocks[i]);
+    }
+  }
+  Automate * autom_begin = pattern1->convert(clocks,cpt_state,init_clk);
+
+  autom_end->alphabet.insert(autom_begin->alphabet.begin(), autom_begin->alphabet.end());
+
+  map<State*, State*> dictionnary;
+
+  for(State & oldState : autom_begin->states){
+    bool present = false;
+    for(State* endS : autom_begin->endStates){
+      if(endS == &oldState){
+        present = true;
+        break;
+      }
+    }
+    if(!present){
+      autom_end->states.push_back(oldState);
+      State & new_state = *(--(autom_end->states.end()));
+      dictionnary[&oldState]= &new_state;
+    }
+  }
+
+  for(State* oldEndState : autom_begin->endStates){
+    dictionnary[oldEndState] = autom_end->start;
+  }
+
+  for(State & oldState : autom_begin->states){
+    State * newState = dictionnary[&oldState];
+    for(Transition* transition : autom_begin->transitions[&oldState]){
+      transition->origine = newState;
+      transition->destination = dictionnary[transition->destination];
+      if(transition->destination == autom_end->start){
+        transition->clocks_to_reset.insert(to_reset.begin(),to_reset.end());
+      }
+      autom_end->transitions[newState].push_back(transition);
+    }
+  }
+  autom_end->start = dictionnary[autom_begin->start];
+  
+  for(State & stat : autom_end->states){
+    stat.shufflable = false;
+  }
+  autom_end->start->shufflable = true;
+  for(State * endState : autom_end->endStates){
+    endState->shufflable = true;
+  } 
+  
+  autom_begin->transitions = map<State*,vector<Transition*>>();
+  delete autom_begin;
+  return autom_end;
 }
 
 AST_ALLOCS::AST_ALLOCS(AST_node *pattern, vector<int> vars)
@@ -497,7 +552,7 @@ Automate * AST_FREES::convert(vector<Clock*> & clocks, int& cpt_state, int& init
 }
 
 AST_terminals::AST_terminals(int number_clocks):AST_node(number_clocks){}
-~AST_terminals()=default;
+AST_terminals::~AST_terminals()=default;
 
 AST_CONST::AST_CONST(string event):AST_terminals(0), event(event){}
 
@@ -540,6 +595,23 @@ Automate * AST_USE::convert(vector<Clock*> & clocks, int& cpt_state, int & init_
   if(free){
     trans->frees.push_back(var);
   }
+  a->transitions[a->start].push_back(trans);
+  return a;
+}
+
+AST_ALPHA::AST_ALPHA():AST_terminals(0){}
+AST_ALPHA::~AST_ALPHA() = default;
+
+Automate * AST_ALPHA::convert(vector<Clock*> & clocks, int& cpt_state, int & init_clk){
+  Automate *a = new Automate();
+  a->states.push_back(State("s"+to_string(cpt_state++)));
+  a->states.push_back(State("s"+to_string(cpt_state++)));
+  std::list<State>::iterator ite = a->states.begin();
+  a->start = &(*ite);
+  ite++;
+  a->endStates.push_back(&(*(ite)));
+  Transition * trans = new Alpha_Transition(a->start, a->endStates[0]);
+  trans->clocks_to_reset.insert(clocks[0]);
   a->transitions[a->start].push_back(trans);
   return a;
 }

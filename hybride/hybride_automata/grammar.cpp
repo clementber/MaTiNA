@@ -237,9 +237,10 @@ void Clock::print() const{
 }
 
 State::State(string identifiant, DBM clock_constraints) :
-   id(identifiant), clocks_constraints(clock_constraints){ }
-State::State(string identifiant):id(identifiant),clocks_constraints(DBM()) { }
-State::State():id(""),clocks_constraints(DBM()) { }
+   id(identifiant), clocks_constraints(clock_constraints), shufflable(true){ }
+State::State(string identifiant):id(identifiant),
+                                 clocks_constraints(DBM()), shufflable(true){ }
+State::State():id(""),clocks_constraints(DBM()), shufflable(true){ }
 State::~State() = default;
 
 DBM State::accept(DBM const& clocks_status){
@@ -678,6 +679,85 @@ pair<DBM,vector<pair<bool,unordered_set<string>>>> Constant_Transition::accept_c
 
   return pair<DBM,vector<pair<bool,unordered_set<string>>>>(output_values, memory);
 }
+
+Alpha_Transition::Alpha_Transition(State* const& ori, State* const& dest, vector<int> allocs,
+                                   vector<int> freez, DBM const& clocks_interv, 
+                                   unordered_set<Clock*> const& clock_to_reset):
+                     Transition(ori,dest,allocs,freez,clocks_interv, clock_to_reset){}
+                     
+Alpha_Transition::Alpha_Transition(State * ori, State * dest): Transition(ori,dest){}
+
+Transition * Alpha_Transition::clone(){
+  return new Alpha_Transition(*this);
+}
+
+Alpha_Transition::~Alpha_Transition()=default;
+
+string Alpha_Transition::to_string(){
+  stringstream res;
+  res  << "@";
+  if(!allocations.empty()){
+    res << "<br/>&nu;{" << allocations[0] << "}";
+    for(uint i = 1 ; i < allocations.size(); i++){
+      res << ",&nu;{" << allocations[i] << "}";
+    }
+  }
+  if(!frees.empty()){
+    if(!allocations.empty()){
+      res << ",";
+    }else{
+      res << "<br/>";
+    }
+    res << "<O>&nu;</O>{" << frees[0] << "}";
+    for(uint i=1; i < frees.size(); i++){
+      res << ",<O>&nu;</O>{" << frees[i] << "}";
+    }
+  }
+  res << Transition::to_string();
+  return res.str();
+}
+
+bool Alpha_Transition::triggerable(){ return true; }
+
+pair<DBM,vector<pair<bool,unordered_set<string>>>> Alpha_Transition::accept_event(
+    DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
+    string event){
+  //Memory management
+  alloc(this->allocations, memory);
+  desalloc(this->frees, memory);
+
+  //Time management
+  DBM accepted_values = clocks_status.intersect(clocks_constraints);
+  if(accepted_values.empty()) {
+    return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
+  }
+  accepted_values.reset(clocks_to_reset);
+  //Last check on the token in it's final state.
+  DBM output_values = accepted_values.intersect(destination->clocks_constraints);
+  output_values.normalize();
+
+  return pair<DBM,vector<pair<bool,unordered_set<string>>>>(output_values, memory);
+}
+
+pair<DBM,vector<pair<bool,unordered_set<string>>>> Alpha_Transition::accept_constant(
+    DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory, string constant){
+  //Memory management
+  alloc(this->allocations, memory);
+  desalloc(this->frees, memory);
+
+  //Time management
+  DBM accepted_values = clocks_status.intersect(clocks_constraints);
+  if(accepted_values.empty()) {
+    return pair<DBM,vector<pair<bool,unordered_set<string>>>>(DBM::fail(),{});
+  }
+  accepted_values.reset(clocks_to_reset);
+  //Last check on the token in it's final state.
+  DBM output_values = accepted_values.intersect(destination->clocks_constraints);
+  output_values.normalize();
+
+  return pair<DBM,vector<pair<bool,unordered_set<string>>>>(output_values, memory);
+}
+
 
 Automate::Automate() = default;
 

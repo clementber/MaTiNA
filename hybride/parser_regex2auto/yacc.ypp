@@ -44,16 +44,17 @@
 %token <double> NUMBER
 %token <std::string> CONST
 %type <tnure_ast::AST_node*> regexp
+%type <tnure_ast::AST_terminals*> terminals
 %type <std::unordered_set<std::string>> vars
 
-%token LBALISE RBALISE COMMA LPARENTHESE RPARENTHESE LCROCHET RCROCHET
+%token LBALISE RBALISE COMMA LPARENTHESE RPARENTHESE LCROCHET RCROCHET ALPHA
 
 %left AND
 %left SHUFFLE
 %left OR
 %left RACCOLADE
 %right LACCOLADE
-%left DOT
+%left DOT LINK
 %precedence PLUS STAR QUESTION FREE FRESH
 %%
 rule :
@@ -114,7 +115,9 @@ regexp :
     }
     $$ = new AST_FREES($1, ids);
   }
-  | CONST {
+  | terminals {$$ = $1;}
+
+terminals: CONST {
     try{
       int id = variables_id.at($1);
       $$ = new AST_USE(id, false, false);
@@ -148,6 +151,12 @@ regexp :
       cout << "Error during the detection of variables : " << $2 << "shall be a variable.\n";
       exit(1);
     }
+  }
+  | terminals LINK terminals {
+    $$ = new AST_LINK($1, $3);
+  }
+  | ALPHA {
+    $$ = new AST_ALPHA();
   }
 
 vars : CONST {$$ = {$1};}

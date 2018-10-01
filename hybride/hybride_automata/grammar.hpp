@@ -103,6 +103,7 @@ namespace automate{
     public:
       string id;
       DBM clocks_constraints;
+      bool shufflable;
 
       State();
       State(string identifiant);
@@ -197,6 +198,25 @@ namespace automate{
     ~Constant_Transition();
     string to_string();
     bool triggerable();
+    pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_constant(
+        DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
+        string constant);
+  };
+
+  class Alpha_Transition : public Transition{
+  public:
+    Alpha_Transition(State* const& ori, State* const& dest, vector<int> allocs,
+                     vector<int> freez, DBM const& clocks_interv,
+                     unordered_set<Clock*> const& clock_to_reset);
+    Alpha_Transition(State * ori, State * dest);
+    Transition * clone();
+    ~Alpha_Transition();
+    string to_string();
+    bool triggerable();
+    
+    pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_event(
+        DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
+        string event);
     pair<DBM,vector<pair<bool,unordered_set<string>>>> accept_constant(
         DBM clocks_status ,vector<pair<bool,unordered_set<string>>> memory,
         string constant);

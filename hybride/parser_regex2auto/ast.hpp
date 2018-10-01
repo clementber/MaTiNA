@@ -26,7 +26,7 @@ namespace tnure_ast{
     AST_operator(int number_clocks);
     virtual Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk)=0;
     virtual ~AST_operator();
-  }
+  };
 
   class AST_OR : public AST_operator{
   public:
@@ -102,15 +102,6 @@ namespace tnure_ast{
     Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
   };
 
-  class AST_LINK : public AST_operator{
-  public:
-    AST_terminals *pattern1, *pattern2;
-
-    AST_LINK(AST_terminals *pattern1, AST_terminals *pattern2);
-    ~AST_LINK();
-    Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
-  };
-
   class AST_ALLOCS : public AST_operator{
   public:
     AST_node *pattern;
@@ -136,7 +127,7 @@ namespace tnure_ast{
     AST_terminals(int number_clocks);
     virtual Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk)=0;
     virtual ~AST_terminals();
-  }
+  };
 
   class AST_CONST : public AST_terminals{
   public:
@@ -144,6 +135,15 @@ namespace tnure_ast{
 
     AST_CONST(string event);
     ~AST_CONST();
+    Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
+  };
+  
+  class AST_LINK : public AST_terminals{
+  public:
+    AST_terminals *pattern1, *pattern2;
+
+    AST_LINK(AST_terminals *pattern1, AST_terminals *pattern2);
+    ~AST_LINK();
     Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
   };
 
@@ -154,6 +154,13 @@ namespace tnure_ast{
 
     AST_USE(int var, bool fresh, bool free);
     ~AST_USE();
+    Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
+  };
+  
+  class AST_ALPHA : public AST_terminals{
+  public:
+    AST_ALPHA();
+    ~AST_ALPHA();
     Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
   };
 };
