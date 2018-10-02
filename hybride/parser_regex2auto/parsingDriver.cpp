@@ -21,7 +21,7 @@ unordered_set<string> find_variables(string filename){
     if( c == ' '|| c =='\n' || c=='\t'){
       continue;
     }else if(c == '(' ||c == ')'||c == '<'||c == '>'||c == '+'|| c == '*'
-           ||c == '?' ||c == '.'||c == '&'||c == '|'||c == '%'){
+           ||c == '?' ||c == '.'||c == '&'||c == '|'||c == '%'|| c == '~'){
       if(buffer != "" && variable){
         res.insert(buffer);
         variable = false;

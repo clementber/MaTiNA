@@ -394,23 +394,28 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
   for(unsigned int i = 0; i< new_clocks.size(); i++){
     clocks[initial_clock_number+i] = new_clocks[i];
   }
+  
   Automate *a = new Automate();
   map<State *,map<State*,State*>> dictionnary;
-
   for(State & oldState1 : autom1->states){
     for(State & oldState2 : autom2->states){
+      if(!oldState1.shufflable && !oldState2.shufflable){
+        continue;
+      }
       a->states.push_back(State(oldState1.id+""+oldState2.id));
       State & newState = *(--(a->states.end()));
       newState.clocks_constraints = oldState1.clocks_constraints.intersect(oldState2.clocks_constraints);
+      newState.shufflable = oldState1.shufflable && oldState2.shufflable;
       dictionnary[&oldState1][&oldState2] = &newState;
     }
   }
 
   for(auto const& element1 : autom1->transitions){
+    State * t1ori = element1.first;
     for(Transition *trans1 : element1.second){
-      State * t1ori = trans1->origine;
       State * t1dest = trans1->destination;
       for(State & state2 : autom2->states){
+        if(!state2.shufflable){ continue; }
         Transition * new_trans = trans1->clone();
         new_trans->origine = dictionnary[t1ori][&state2];
         new_trans->destination=dictionnary[t1dest][&state2];
@@ -420,10 +425,11 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
   }
 
   for(auto const& element2 : autom2->transitions){
+    State * t2ori = element2.first;
     for(Transition * trans2 : element2.second){
-      State * t2ori = trans2->origine;
       State * t2dest = trans2->destination;
       for(State & state1 : autom1->states){
+        if(!state1.shufflable){ continue; }
         Transition * new_trans = trans2->clone();
         new_trans->origine = dictionnary[&state1][t2ori];
         new_trans->destination = dictionnary[&state1][t2dest];
