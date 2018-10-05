@@ -142,7 +142,7 @@ AST_AND::~AST_AND(){
 }
 
 Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk){
-  /*TODO*/ /*// As both patterns occures simultaneously the clocks of each pattern
+  // As both patterns occures simultaneously the clocks of each pattern
   // shall not be reset by the transition of other one.
   int initial_clock_number = init_clk;
   Automate * autom1 = pattern1->convert(clocks, cpt_state,init_clk);
@@ -160,52 +160,36 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
 
   for(State & oldState1 : autom1->states){
       for(State & oldState2 : autom2->states){
-      a->states.push_back(State(oldState1.id+"-"+oldState2.id));
+      a->states.push_back(State(oldState1.id+"_"+oldState2.id));
       State & newState = *(--(a->states.end()));
+      newState.shufflable = oldState1.shufflable || oldState2.shufflable;
       newState.clocks_constraints = oldState1.clocks_constraints.intersect(oldState2.clocks_constraints);
       dictionnary[&oldState1][&oldState2] = &newState;
     }
   }
 
   for(auto const& element1 : autom1->transitions){
-    for(Transition const& trans1 : element1.second){
-      if(trans1.epsilon()){ continue; }
-      for(auto const& element2 : autom2->transitions){
-        for(Transition trans2 : element2.second){
-          if(trans2.epsilon()){continue;}
-          if(trans1.triggers[0] != trans2.triggers[0]){continue;}
-          trans2.origine= dictionnary[trans1.origine][trans2.origine];
-          trans2.destination = dictionnary[trans1.destination][trans2.destination];
-          trans2.clocks_constraints = trans1.clocks_constraints.intersect(trans2.clocks_constraints);
-          trans2.clocks_to_reset.insert(trans1.clocks_to_reset.begin(), trans1.clocks_to_reset.end());
-          a->transitions[trans2.origine].push_back(trans2);
-        }
-      }
-    }
-  }
-
-  for(auto const& element1 : autom1->transitions){
     for(Transition trans1 : element1.second){
-      if(!trans1.epsilon()){ continue; }
+      if(trans1.triggerable()){ continue; }
       State * t1ori = trans1.origine;
       State * t1dest = trans1.destination;
       for(State & state : autom2->states){
         trans1.origine = dictionnary[t1ori][&state];
         trans1.destination = dictionnary[t1dest][&state];
-        a->transitions[trans1.origine].push_back(trans1);
+        a->transitions[trans1.origine].push_back(trans1.clone());
       }
     }
   }
 
   for(auto const& element2 : autom2->transitions){
     for(Transition trans2 : element2.second){
-      if(!trans2.epsilon()){ continue; }
+      if(trans2.triggerable()){ continue; }
       State * t2ori = trans2.origine;
       State * t2dest = trans2.destination;
       for(State & state : autom1->states){
         trans2.origine = dictionnary[&state][t2ori];
         trans2.destination = dictionnary[&state][t2dest];
-        a->transitions[trans2.origine].push_back(trans2);
+        a->transitions[trans2.origine].push_back(trans2.clone());
       }
     }
   }
@@ -218,10 +202,28 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
   a->alphabet = autom1->alphabet;
   a->alphabet.insert(autom2->alphabet.begin(), autom2->alphabet.end());
   a->start = dictionnary[autom1->start][autom2->start];
+
+  //ça c'est du caca... A modifier
+  for(auto const& element1 : autom1->transitions){
+    for(Transition const& trans1 : element1.second){
+      if(!trans1.triggerable()){ continue; }
+      for(auto const& element2 : autom2->transitions){
+        for(Transition trans2 : element2.second){
+          if(!trans2.triggerable()){continue;}
+          if(trans1.triggers[0] != trans2.triggers[0]){continue;}
+          trans2.origine= dictionnary[trans1.origine][trans2.origine];
+          trans2.destination = dictionnary[trans1.destination][trans2.destination];
+          trans2.clocks_constraints = trans1.clocks_constraints.intersect(trans2.clocks_constraints);
+          trans2.clocks_to_reset.insert(trans1.clocks_to_reset.begin(), trans1.clocks_to_reset.end());
+          a->transitions[trans2.origine].push_back(trans2);
+        }
+      }
+    }
+  }
+
   delete autom1;
   delete autom2;
-  return a;*/
-  return pattern1->convert(clocks, cpt_state,init_clk);
+  return a;
 }
 
 AST_DELAY::AST_DELAY(AST_node* n1, Bound inf, Bound sup):
@@ -394,7 +396,7 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
   for(unsigned int i = 0; i< new_clocks.size(); i++){
     clocks[initial_clock_number+i] = new_clocks[i];
   }
-  
+
   Automate *a = new Automate();
   map<State *,map<State*,State*>> dictionnary;
   for(State & oldState1 : autom1->states){
@@ -503,15 +505,15 @@ Automate * AST_LINK::convert(vector<Clock*> & clocks, int& cpt_state, int& init_
     }
   }
   autom_end->start = dictionnary[autom_begin->start];
-  
+
   for(State & stat : autom_end->states){
     stat.shufflable = false;
   }
   autom_end->start->shufflable = true;
   for(State * endState : autom_end->endStates){
     endState->shufflable = true;
-  } 
-  
+  }
+
   autom_begin->transitions = map<State*,vector<Transition*>>();
   delete autom_begin;
   return autom_end;
