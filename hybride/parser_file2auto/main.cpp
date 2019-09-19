@@ -35,7 +35,7 @@ int main(int argc, char *argv[]){
   for(State & st : input_autom->states){
     for(Transition * trans : input_autom->transitions[&st]){
       cout << "\t" << trans->origine->id << "->" << trans->destination->id << " : ";
-      cout << ((Transition)*trans).to_string() ;
+      cout << trans->to_string() ;
 
       if(!trans->allocations.empty()){
         cout << " nu : {";

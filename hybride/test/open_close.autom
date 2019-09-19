@@ -1,0 +1,45 @@
+l0 #S
+l0c
+l0o
+l1
+l1c
+l1o
+l2
+l2c
+l2o
+end #E
+
+//
+
+l0 l0o o
+l0o l0 $H alloc:H
+l0o l0 $H
+l0o l1 $F reset:clk alloc:F
+
+l0 l0c c
+l0c l0 $H
+l0c l0 $H alloc:H
+l0c end $F alloc:F
+
+
+l1 l1o o
+l1o end $F
+l1o l1 $H
+l1o l1 $H alloc:H
+
+l1 l1c c
+l1c l1 $H
+l1c l1 $H alloc:H
+l1c l2 $F [clk <10]
+l1c end $F [10 <= clk]
+
+
+l2 l2o o
+l2o l2 $H
+l2o l2 $H alloc:H
+l2o l1 F reset:clk
+
+l2 l2c c
+l2c l2 $H
+l2c l2 $H alloc:H
+l2c end $F
