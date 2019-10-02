@@ -1,6 +1,7 @@
 #include <iostream>
 #include "modelRecognizer.hpp"
 #include <limits>
+#include <sstream>
 
 using namespace automate;
 using namespace std;
@@ -9,12 +10,16 @@ using namespace recognizer;
 typedef pair<DBM, vector<pair<bool,unordered_set<string>>>> token_content;
 
 Token::Token(Automate* automate){
+  cout <<"Créons le premier jeton\n";
   initial_values = DBM(*automate);
+  cout << "Ma première DBM\n";
   current_values = initial_values;
   final_values = initial_values;
+  cout << "Duplication de la DBM\n";
   for(int i = 0; i< automate->ressources; i++){
     variables.push_back(pair<bool,unordered_set<string>>(false,{}));
   }
+  cout << "Les variables sont initialisé\n";
 }
 
 Token::Token(DBM initial_v,DBM current_v,DBM final_v,
@@ -54,10 +59,33 @@ bool Token::operator<=(Token const& tok2) const{
   }
   return true;
 }
+
+string Token::to_string() const{
+  stringstream sstr;
+  sstr <<  "token :\n";
+  for(vector<Bound> const& line : current_values.matrice){
+    for(Bound const& bound : line){
+      sstr << "(";
+      sstr <<  (bound.value==numeric_limits<double>::max()? "\\inf":std::to_string(bound.value));
+      sstr <<  " , " << bound.inclusion << ") ";
+    }
+    sstr << "\n";
+  }
+  for(unsigned int i =0; i<variables.size(); i++){
+    sstr <<  " "<< i << " : {";
+    for(string str : variables[i].second){
+      sstr <<  str << "; ";
+    }
+    sstr <<  "}";
+  }
+  sstr <<  "\n";
+  return sstr.str();
+}
 //---------------------------End of class Token-------------------------------//
 
 Checker::Checker(Automate* modele_automate) : modele(modele_automate) {
   map_tokens[modele->start].push_back(Token(modele));
+  cout << "Ici c'est bon\n";
   this->propagate(false);
 }
 Checker::~Checker() = default;

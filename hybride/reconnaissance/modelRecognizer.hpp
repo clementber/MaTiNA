@@ -44,6 +44,8 @@ namespace recognizer{
       tok.validate;
       return tok;
     }
+    
+    string to_string() const;
   };
 
   class Checker{

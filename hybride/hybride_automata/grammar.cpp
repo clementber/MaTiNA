@@ -369,8 +369,9 @@ Epsilon_Transition::~Epsilon_Transition() = default;
 
 string Epsilon_Transition::to_string(){
   stringstream res;
+  res << "epsilon";
   if(!allocations.empty()){
-    res << "&nu;{" << allocations[0] << "}";
+    res << "<br/>&nu;{" << allocations[0] << "}";
     for(uint i = 1 ; i < allocations.size(); i++){
       res << ",&nu;{" << allocations[i] << "}";
     }

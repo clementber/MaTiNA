@@ -42,6 +42,7 @@ word [[:alpha:]]([[:alnum:]]|"-"|"_")*
 "#S" return (yy::parser::make_START_NODE(loc));
 "#E" return (yy::parser::make_END_NODE(loc));
 "#N" return (yy::parser::make_NONE(loc));
+"#A" return (yy::parser::make_ALL(loc));
 "$" return (yy::parser::make_DOLLAR(loc));
 "alloc:" return (yy::parser::make_ALLOC(loc));
 "free:" return (yy::parser::make_FREE(loc));

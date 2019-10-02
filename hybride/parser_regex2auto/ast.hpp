@@ -84,6 +84,7 @@ namespace tnure_ast{
     Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
   };
 
+  //One ore more occurence
   class AST_PLUS : public AST_operator{
   public:
     AST_node *pattern;
@@ -93,6 +94,7 @@ namespace tnure_ast{
     Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk);
   };
 
+  //Zero or more occurence
   class AST_SHUFFLE : public AST_operator{
   public:
     AST_node *pattern1, *pattern2;
@@ -124,7 +126,7 @@ namespace tnure_ast{
 
   class AST_terminals : public AST_node{
   public:
-    AST_terminals(int number_clocks);
+    AST_terminals();
     virtual Automate * convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk)=0;
     virtual ~AST_terminals();
   };

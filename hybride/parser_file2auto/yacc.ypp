@@ -55,7 +55,7 @@
 %type <automate::Bound> borne_inf borne_sup
 
 %token COMMA LACOLADE RACOLADE EGALE LCROCHET RCROCHET LBALISE
-%token START_NODE END_NODE NLINE DOUBLE_SLASH NONE DOLLAR FREE ALLOC RESET
+%token START_NODE END_NODE NLINE DOUBLE_SLASH NONE ALL DOLLAR FREE ALLOC RESET
 
 %%
 autom :
@@ -191,6 +191,27 @@ arrete :
             yy::parser::error (@$, "state undeclared : "+dest);
           }
           Transition* new_trans = new Epsilon_Transition(origine_state, destination_state, get<0>($4), get<1>($4), conditions, get<2>($4));
+          generate_automate->transitions[origine_state].push_back(new_trans);
+        }
+      }
+    }
+    
+    /*Ori*//*Dest*//*Event*/
+   |names  names  ALL actions conditions{
+      DBM conditions = $5;
+      conditions.normalize();
+      //Create the new transition for each pairs of origine, destination
+      for(string ori : $1){
+        State* origine_state = generate_automate->getState(ori);
+        if(origine_state == nullptr){
+          yy::parser::error (@$, "state undeclared : "+ori);
+        }
+        for(string dest : $2){
+          State* destination_state = generate_automate->getState(dest);
+          if(destination_state == nullptr){
+            yy::parser::error (@$, "state undeclared : "+dest);
+          }
+          Transition* new_trans = new Alpha_Transition(origine_state, destination_state, get<0>($4), get<1>($4), conditions, get<2>($4));
           generate_automate->transitions[origine_state].push_back(new_trans);
         }
       }

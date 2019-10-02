@@ -1,4 +1,4 @@
-all:AutomRecognizer AutomChecker
+all:AutomRecognizer AutomChecker RegexChecker RegexRecognizer
 
 AutomRecognizer: modelRecognizer.cpp inputAutom.cpp ../parser_file2auto/libautomatefromfile.a
 	g++ -std=c++11 -O3 $^ -L../parser_file2auto -lautomatefromfile -o $@
@@ -6,8 +6,18 @@ AutomRecognizer: modelRecognizer.cpp inputAutom.cpp ../parser_file2auto/libautom
 AutomChecker: modelRecognizer.cpp checkerAutom.cpp ../parser_file2auto/libautomatefromfile.a
 	g++ -std=c++11 -O3 $^ -L../parser_file2auto -lautomatefromfile -o $@
 
+RegexChecker: modelRecognizer.cpp checkerRegex.cpp ../parser_regex2auto/libautomatefromregexp.a
+	g++ -std=c++11 -O3 $^ -L../parser_regex2auto -lautomatefromregexp -o $@
+	
+RegexRecognizer: modelRecognizer.cpp inputRegex.cpp ../parser_regex2auto/libautomatefromregexp.a
+	g++ -std=c++11 -O3 $^ -L../parser_regex2auto -lautomatefromregexp -o $@
+
+
 ../parser_file2auto/libautomatefromfile.a :
 	cd ../parser_file2auto/ && $(MAKE)
+
+../parser_regex2auto/libautomatefromregexp.a :
+	cd ../parser_regex2auto/ && $(MAKE)
 
 clean:
 	rm -f AutomRecognizer RegexRecognizer RegexChecker AutomChecker

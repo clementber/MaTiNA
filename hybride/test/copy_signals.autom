@@ -3,7 +3,7 @@ initU
 initB
 initX
 equal
-diff [clk <= 2]
+diff [clk <= 600]
 diffU
 diffB
 diffX
@@ -13,7 +13,7 @@ end #E
 
 init initU u
 
-initU initB b free:VB
+initU initB Y free:VB
 initB init $VB alloc:VB
 initU initX $X alloc:X
 
@@ -22,16 +22,16 @@ initX diff $VX alloc:VX reset: clk free:VB
 initX init $VB free:X
 initX init $VX alloc:VX free:{VX, X}
 
-diff diffU u [clk < 2]
-diffU diffB b
+diff diffU u [clk < 600]
+diffU diffB Y
 diffB equal $VX
 diffB diff $VB alloc:VB free:VB
 
 diffU diffX $X
-diffU diffX $Y alloc:Y free:Y
+diffU diffX $Z alloc:Z free:Z
 
 
 diffX diff $VX
 diffX diff $VB alloc:VB free:VB
 
-diff end #N [2 <= clk]
+diff end #N [600 <= clk]

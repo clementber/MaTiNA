@@ -27,7 +27,7 @@ public:
 
   // Run the parser on file F.
     // Return 0 on success.
-    int parse (automate::Automate** automate, const std::string& f);
+    int parse (automate::Automate*& automate, const std::string& f);
     // The name of the file being parsed.
     // Used later to pass the file name to the location tracker.
     std::string file;

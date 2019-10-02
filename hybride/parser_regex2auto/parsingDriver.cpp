@@ -73,7 +73,8 @@ unordered_set<string> find_variables(string filename){
           buffer = "";
           break;
         }else if(c == '(' ||c == ')'||c == '<'||c == '>'||c == '+'|| c == '*'
-               ||c == '?' ||c == '.'||c == '&'||c == '|'||c == '%'){
+               ||c == '?' ||c == '.'||c == '&'||c == '|'||c == '%'|| c == '@'
+               ||c == '#' ||c == '!'||c == '{'||c == '['||c == ']'){
            cout << "Fail to parse. unexpected character" << c << "\n";
            file.close();
            exit(1);
@@ -95,15 +96,15 @@ unordered_set<string> find_variables(string filename){
   return res;
 }
 
-int regex_driver::parse (automate::Automate** automate, const std::string &f)
+int regex_driver::parse (automate::Automate*& automate, const std::string& f)
 {
   file = f;
   unordered_set<string> variables_name;
   variables_name = find_variables(f);
   map<string,int> variables_id;
-  int cpt = 0;
+  int nb_variables = 0;
   for(string var_name : variables_name){
-    variables_id[var_name] = cpt++;
+    variables_id[var_name] = nb_variables++;
   }
   scan_begin ();
   tnure_ast::AST_node * ast;
@@ -112,11 +113,12 @@ int regex_driver::parse (automate::Automate** automate, const std::string &f)
   int res = parser.parse ();
   scan_end ();
   if(res == 0){
-    *automate = ast->convert();
+    automate = ast->convert();
     delete ast;
   }else{
     cout << "ERROR : Expression Parsing fail!!\n";
   }
+  automate->ressources = nb_variables;
   return res;
 }
 

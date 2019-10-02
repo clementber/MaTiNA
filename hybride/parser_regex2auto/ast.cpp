@@ -142,7 +142,8 @@ AST_AND::~AST_AND(){
 }
 
 Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init_clk){
-  // As both patterns occures simultaneously the clocks of each pattern
+  return pattern1->convert(clocks, cpt_state,init_clk);
+/*  // As both patterns occures simultaneously the clocks of each pattern
   // shall not be reset by the transition of other one.
   int initial_clock_number = init_clk;
   Automate * autom1 = pattern1->convert(clocks, cpt_state,init_clk);
@@ -169,7 +170,7 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
   }
 
   for(auto const& element1 : autom1->transitions){
-    for(Transition trans1 : element1.second){
+    for(Transition const& trans1 : element1.second){
       if(trans1.triggerable()){ continue; }
       State * t1ori = trans1.origine;
       State * t1dest = trans1.destination;
@@ -182,7 +183,7 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
   }
 
   for(auto const& element2 : autom2->transitions){
-    for(Transition trans2 : element2.second){
+    for(Transition const& trans2 : element2.second){
       if(trans2.triggerable()){ continue; }
       State * t2ori = trans2.origine;
       State * t2dest = trans2.destination;
@@ -203,12 +204,12 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
   a->alphabet.insert(autom2->alphabet.begin(), autom2->alphabet.end());
   a->start = dictionnary[autom1->start][autom2->start];
 
-  //ça c'est du caca... A modifier
+  //C'est du caca... À refaire.
   for(auto const& element1 : autom1->transitions){
     for(Transition const& trans1 : element1.second){
       if(!trans1.triggerable()){ continue; }
       for(auto const& element2 : autom2->transitions){
-        for(Transition trans2 : element2.second){
+        for(Transition const& trans2 : element2.second){
           if(!trans2.triggerable()){continue;}
           if(trans1.triggers[0] != trans2.triggers[0]){continue;}
           trans2.origine= dictionnary[trans1.origine][trans2.origine];
@@ -223,7 +224,7 @@ Automate * AST_AND::convert(vector<Clock*> & clocks, int & cpt_state, int & init
 
   delete autom1;
   delete autom2;
-  return a;
+  return a;*/
 }
 
 AST_DELAY::AST_DELAY(AST_node* n1, Bound inf, Bound sup):
@@ -455,8 +456,7 @@ Automate * AST_SHUFFLE::convert(vector<Clock*> & clocks, int & cpt_state, int & 
 }
 
 AST_LINK::AST_LINK(AST_terminals * pattern1, AST_terminals * pattern2):
-              AST_terminals(pattern1->number_clocks + pattern2->number_clocks),
-              pattern1(pattern1), pattern2(pattern2){}
+              AST_terminals(), pattern1(pattern1), pattern2(pattern2){}
 
 AST_LINK::~AST_LINK()=default;
 
@@ -559,10 +559,10 @@ Automate * AST_FREES::convert(vector<Clock*> & clocks, int& cpt_state, int& init
   return a;
 }
 
-AST_terminals::AST_terminals(int number_clocks):AST_node(number_clocks){}
+AST_terminals::AST_terminals():AST_node(0){}
 AST_terminals::~AST_terminals()=default;
 
-AST_CONST::AST_CONST(string event):AST_terminals(0), event(event){}
+AST_CONST::AST_CONST(string event):AST_terminals(), event(event){}
 
 AST_CONST::~AST_CONST()=default;
 
@@ -582,7 +582,7 @@ Automate * AST_CONST::convert(vector<Clock*> & clocks, int & cpt_state, int & in
   return a;
 }
 
-AST_USE::AST_USE(int var, bool fresh, bool free):AST_terminals(0),var(var),
+AST_USE::AST_USE(int var, bool fresh, bool free):AST_terminals(),var(var),
                                                  fresh(fresh), free(free) {}
 
 AST_USE::~AST_USE()=default;
@@ -607,7 +607,7 @@ Automate * AST_USE::convert(vector<Clock*> & clocks, int& cpt_state, int & init_
   return a;
 }
 
-AST_ALPHA::AST_ALPHA():AST_terminals(0){}
+AST_ALPHA::AST_ALPHA():AST_terminals(){}
 AST_ALPHA::~AST_ALPHA() = default;
 
 Automate * AST_ALPHA::convert(vector<Clock*> & clocks, int& cpt_state, int & init_clk){

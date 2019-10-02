@@ -14,7 +14,7 @@ int main(int argc, char *argv[]){
   }
   regex_driver parser;
   automate::Automate*input_autom = nullptr;
-  int res = parser.parse (&input_autom, argv[1]);
+  int res = parser.parse (input_autom, argv[1]);
   if(res != 0){
     if(input_autom != nullptr){
       delete input_autom;
