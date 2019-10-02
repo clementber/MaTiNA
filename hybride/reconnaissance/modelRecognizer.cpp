@@ -10,16 +10,12 @@ using namespace recognizer;
 typedef pair<DBM, vector<pair<bool,unordered_set<string>>>> token_content;
 
 Token::Token(Automate* automate){
-  cout <<"Créons le premier jeton\n";
   initial_values = DBM(*automate);
-  cout << "Ma première DBM\n";
   current_values = initial_values;
   final_values = initial_values;
-  cout << "Duplication de la DBM\n";
   for(int i = 0; i< automate->ressources; i++){
     variables.push_back(pair<bool,unordered_set<string>>(false,{}));
   }
-  cout << "Les variables sont initialisé\n";
 }
 
 Token::Token(DBM initial_v,DBM current_v,DBM final_v,
@@ -85,7 +81,6 @@ string Token::to_string() const{
 
 Checker::Checker(Automate* modele_automate) : modele(modele_automate) {
   map_tokens[modele->start].push_back(Token(modele));
-  cout << "Ici c'est bon\n";
   this->propagate(false);
 }
 Checker::~Checker() = default;
