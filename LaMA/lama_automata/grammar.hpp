@@ -21,6 +21,19 @@ namespace automate{
      Variable(int name, int layer);
   } 
 
+  class Valuation{
+    //TODO : Good structure to represent Memory valuation.
+    public:
+      Valuation();
+      Valuation(int nb_layers, int nb_variables);
+      
+      bool isFresh(int const& layer, string const& value) const;
+      void alloc(vector<Variable> to_alloc);
+      void desalloc(vector<Variable> to_alloc);
+      bool use(vector<Variable> to_alloc, string const& value);
+      bool isEmpty() const;    
+  }
+
   class State{
     public:
       string id;
@@ -46,10 +59,8 @@ namespace automate{
                vector<Variable> allocs, vector<Variable> freez);
     Transition(State* const& ori, State* const& dest);
     virtual ~Transition();
-    virtual vector<pair<bool,unordered_set<string>>> accept_epsilon(
-        vector<pair<bool,unordered_set<string>>> memory);
-    virtual vector<pair<bool,unordered_set<string>>> accept_character(
-        vector<pair<bool,unordered_set<string>>> memory,string event);
+    virtual Valuation accept_epsilon(Valuation memory);
+    virtual Valuation accept_value(Valuation memory,string event);
     virtual string to_string()=0;
   };
 
@@ -59,21 +70,19 @@ namespace automate{
                vector<Variable> allocs, vector<Variable> freez);
     Epsilon_Transition(State* const& ori, State* const& dest);
     ~Epsilon_Transition();
-    vector<pair<bool,unordered_set<string>>> accept_epsilon(
-        vector<pair<bool,unordered_set<string>>> memory);
+    Valuation accept_epsilon(Valuation memory);
     string to_string();
   };
 
   class Event_Transition : public Transition{
   public:
-    Variable trigger;
+    vector<Variable> trigger;
 
     Event_Transition(State* const& ori, State* const& dest, 
                vector<Variable> allocs, vector<Variable> freez, Variable var);
     Event_Transition(State* const& ori, State* const& dest, Variable variable);
     ~Event_Transition();
-    vector<pair<bool,unordered_set<string>>> accept_character(
-        vector<pair<bool,unordered_set<string>>> memory,string event);
+    Valuation accept_value(Valuation memory,string event);
     string to_string();
   };
 
@@ -84,8 +93,7 @@ namespace automate{
                vector<Variable> allocs, vector<Variable> freez);
     Universal_Transition(State* const& ori, State* const& dest);
     ~Universal_Transition();
-    vector<pair<bool,unordered_set<string>>> accept_character(
-        vector<pair<bool,unordered_set<string>>> memory,string constant);
+    Valuation accept_value(Valuation memory,string constant);
     string to_string();
   };
 
@@ -93,14 +101,14 @@ namespace automate{
   public:
     int number_layers;
     int number_variables_ids;
-    unordered_set<string> constants;
+    Valuation initial_valuation;
     list<State> states;
     map<State*,vector<Transition*>> transitions;
     State* start;
     vector<State*> endStates;
 
       Automate();
-      Automate(int p_ressources, unordered_set<string> p_constants,
+      Automate(int p_ressources, Valuation initial_valuation,
             list<State> p_states, map<State*, vector<Transition*>> p_transitions,
             State* p_start, vector<State*> p_endStates);
 
