@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <pair>
+#include <utility>
 #include <list>
 #include <unordered_set>
 
@@ -19,20 +19,28 @@ namespace automate{
      int name, layer;
      
      Variable(int name, int layer);
-  } 
+  }; 
 
   class Valuation{
-    //TODO : Good structure to represent Memory valuation.
+    private:
+      int nb_layers, nb_variables;
+      pair<bool,unordered_set<string>>** value;
+      
+      bool can_use(vector<Variable> const& to_use, string const& event);
     public:
       Valuation();
       Valuation(int nb_layers, int nb_variables);
+      Valuation(Valuation const& original);
+      ~Valuation();
       
-      bool isFresh(int const& layer, string const& value) const;
-      void alloc(vector<Variable> to_alloc);
-      void desalloc(vector<Variable> to_alloc);
-      bool use(vector<Variable> to_alloc, string const& value);
-      bool isEmpty() const;    
-  }
+      int get_nb_layers();
+      int get_nb_variables();
+      bool isFresh(int const& layer, string const& event) const;
+      void alloc(vector<Variable> const& to_alloc);
+      void desalloc(vector<Variable> const& to_free);
+      bool use(vector<Variable> const& to_use, string const& event);
+      bool isNull() const;
+  };
 
   class State{
     public:
@@ -76,11 +84,13 @@ namespace automate{
 
   class Event_Transition : public Transition{
   public:
-    vector<Variable> trigger;
+    vector<Variable> triggers;
 
     Event_Transition(State* const& ori, State* const& dest, 
-               vector<Variable> allocs, vector<Variable> freez, Variable var);
-    Event_Transition(State* const& ori, State* const& dest, Variable variable);
+               vector<Variable> allocs, vector<Variable> freez, 
+               vector<Variable> var);
+    Event_Transition(State* const& ori, State* const& dest, 
+                     vector<Variable> variable);
     ~Event_Transition();
     Valuation accept_value(Valuation memory,string event);
     string to_string();
@@ -99,8 +109,6 @@ namespace automate{
 
   class Automate{
   public:
-    int number_layers;
-    int number_variables_ids;
     Valuation initial_valuation;
     list<State> states;
     map<State*,vector<Transition*>> transitions;
@@ -108,9 +116,9 @@ namespace automate{
     vector<State*> endStates;
 
       Automate();
-      Automate(int p_ressources, Valuation initial_valuation,
-            list<State> p_states, map<State*, vector<Transition*>> p_transitions,
-            State* p_start, vector<State*> p_endStates);
+      Automate(Valuation initial_valuation, list<State> p_states, 
+               map<State*, vector<Transition*>> p_transitions, State* p_start, 
+               vector<State*> p_endStates);
 
       ~Automate();
       State* getState(string state_name);

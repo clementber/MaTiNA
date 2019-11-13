@@ -6,25 +6,94 @@ using namespace std;
 Variable::Variable(int name, int layer): name(name),layer(layer){ }
 
 //-----------------------Memory Valuation---------------------------------------
+Valuation::Valuation() : nb_layers(0), nb_variables(0){
+  value = NULL;
+}
+  
+Valuation::Valuation(int nb_layers, int nb_variables):
+  nb_layers(nb_layers),nb_variables(nb_variables)
+{
+  value = new pair<bool,unordered_set<string>>*[nb_layers];
+  for(int i = 0; i< nb_layers; i++){
+    value[i] = new pair<bool,unordered_set<string>>[nb_variables];
+    for(int j = 0; j< nb_variables; j++){
+      value[i][j] = pair<bool,unordered_set<string>>(false,unordered_set<string>());
+    }
+  }
+}
 
+Valuation::Valuation(Valuation const& original):nb_layers(original.nb_layers),
+  nb_variables(original.nb_variables){
+  value = new pair<bool,unordered_set<string>>*[nb_layers];
+  for(int i = 0; i< nb_layers; i++){
+    value[i] = new pair<bool,unordered_set<string>>[nb_variables];
+    for(int j = 0; j< nb_variables; j++){
+      value[i][j] = original.value[i][j];
+    }
+  } 
+}
+
+Valuation::~Valuation(){
+  for(int i= 0; i < nb_layers; i++){ delete[] value[i];}
+  if(value != NULL){ delete[] value; }
+}
+
+int Valuation::get_nb_layers(){ return nb_layers; }
+
+int Valuation::get_nb_variables(){ return nb_variables; }
+
+//TODO optimize
 bool Valuation::isFresh(int const& layer, string const& event) const{
-  //TODO
+  for(int i = 0; i < nb_variables; i++){
+    if(value[layer][i].second.find(event) != value[layer][i].second.end()){
+      return false;
+    }
+  }
+  return true;
 }
 
-void Valuation::alloc(vector<Variable> to_alloc){
-  //TODO
+void Valuation::alloc(vector<Variable> const& to_alloc){
+  for(Variable var : to_alloc){
+    value[var.layer][var.name].first = true;
+  }
 }
 
-void Valuation::desalloc(vector<Variable> to_alloc){
-  //TODO
+void Valuation::desalloc(vector<Variable> const& to_free){
+  for(Variable var : to_free){
+    value[var.layer][var.name].first = false;
+    value[var.layer][var.name].second.clear();
+  }
 }
 
-bool Valuation::use(vector<Variable> to_alloc, string const& value){
-  //TODO
+//TODO optimize
+bool Valuation::can_use(vector<Variable> const& to_use, string const& event){
+  for(Variable var : to_use){
+    if(value[var.layer][var.name].first){ //Allocated case (write mode)
+      if( ! this->isFresh(var.layer, event)){
+        return false;
+      }
+    }else{ // Not allocated (Read mode)
+      if(value[var.layer][var.name].second.find(event)==value[var.layer][var.name].second.end()){
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
-bool Valuation::isEmpty() const{
-  //TODO
+//TODO optimize
+bool Valuation::use(vector<Variable> const& to_use, string const& event){
+  if( ! can_use(to_use, event)) return false;
+  for(Variable var : to_use){
+    if(value[var.layer][var.name].first){ //Allocated case (write mode)
+      value[var.layer][var.name].second.insert(event);
+    }
+  }
+  return true;
+}
+
+bool Valuation::isNull() const{
+  return value==NULL;
 }
 
 //-----------------------State--------------------------------------------------
@@ -34,8 +103,8 @@ State::~State() = default;
 
 //---------------------Transition-----------------------------------------------
 
-Transition::Transition(State* const& ori, State* const& dest, vector<int> allocs,
-                       vector<int> freez) :
+Transition::Transition(State* const& ori, State* const& dest, 
+                       vector<Variable> allocs, vector<Variable> freez) :
   origine(ori), destination(dest), allocations(allocs), frees(freez){}
          
 Transition::Transition(State* const& ori, State* const& dest):
@@ -53,7 +122,8 @@ Valuation Transition::accept_value(Valuation memory, string p_event){
 //--------------------------Epsilon-Transition-------------------------------
 
 Epsilon_Transition::Epsilon_Transition(State* const& ori, State* const& dest, 
-                                       vector<int> allocs, vector<int> freez):
+                                       vector<Variable> allocs,
+                                       vector<Variable> freez):
   Transition(ori,dest,allocs,freez){}
            
 Epsilon_Transition::Epsilon_Transition(State* const& ori, State* const& dest): 
@@ -75,9 +145,10 @@ string Epsilon_Transition::to_string(){
 //-------------------------Event-Transition-------------------------------------
 
 Event_Transition::Event_Transition(State* const& ori, State* const& dest,
-                                   vector<int> allocs, vector<int> freez, 
+                                   vector<Variable> allocs,
+                                   vector<Variable> freez, 
                                    vector<Variable> triggers):
-  Transition(ori,dest,allocs,freez),trigger(trigger){}
+  Transition(ori,dest,allocs,freez),triggers(triggers){}
   
 Event_Transition::Event_Transition(State* const& ori, State* const& dest, 
                                    vector<Variable> triggers):
@@ -85,9 +156,9 @@ Event_Transition::Event_Transition(State* const& ori, State* const& dest,
   
 Event_Transition::~Event_Transition() = default;
 
-Valuation Event_Transition::accept_event(Valuation memory, string event){
+Valuation Event_Transition::accept_value(Valuation memory, string event){
   memory.alloc(this->allocations);
-  if(!memory.use(this->triggers)){
+  if(!memory.use(this->triggers, event)){
     return Valuation();
   }
   memory.desalloc(this->frees);
@@ -96,13 +167,14 @@ Valuation Event_Transition::accept_event(Valuation memory, string event){
 
 string Event_Transition::to_string(){
   //TODO
-  return "{" + std::to_string(variable) + "}";
+  return "event";//"{" + std::to_string(triggers) + "}";
 }
 
 //--------------------------Universal-Transition--------------------------------
 
 Universal_Transition::Universal_Transition(State* const& ori, State* const& dest,
-                                           vector<int> allocs,vector<int> freez):
+                                           vector<Variable> allocs,
+                                           vector<Variable> freez):
   Transition(ori,dest,allocs,freez) {}
   
 Universal_Transition::Universal_Transition(State* const& ori, State* const& dest):
@@ -117,7 +189,7 @@ Valuation Universal_Transition::accept_value(Valuation memory, string event){
   return memory;
 }
 
-string Constant_Transition::to_string(){
+string Universal_Transition::to_string(){
   return "@";
 }
 
@@ -125,15 +197,13 @@ string Constant_Transition::to_string(){
 
 Automate::Automate() = default;
 
-Automate::Automate(int p_ressources, Valuation initial_valuation,
-            list<State> p_states, map<State*, vector<Transition*>> p_transitions,
-            State* p_start, vector<State*> p_endStates) :
-  ressources(p_ressources), initial_valuation(initial_valuation),
-  states(p_states), transitions(p_transitions),
-  start(p_start), endStates(p_endStates) {}
+Automate::Automate(Valuation initial_valuation, list<State> p_states, 
+                   map<State*, vector<Transition*>> p_transitions,
+                   State* p_start, vector<State*> p_endStates) :
+  initial_valuation(initial_valuation), states(p_states),
+  transitions(p_transitions), start(p_start), endStates(p_endStates) {}
   
 Automate::~Automate() {
-  //TODO
   for(auto & pair : transitions){
     for(Transition * trans : pair.second){
       delete trans;
