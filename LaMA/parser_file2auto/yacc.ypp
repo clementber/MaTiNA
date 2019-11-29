@@ -1,0 +1,240 @@
+%{
+  #include <iostream>
+  #include <string>
+  #include <map>
+  #include <tuple>
+  #include "../lama_automata/grammar.hpp"
+  #include "yacc.tab.hpp"
+  using namespace automate;
+
+  yy::parser::symbol_type yylex (yy::parser::semantic_type *arg);
+
+
+  int variable_to_int(string variable_name, autom_driver& driver);
+%}
+%skeleton "lalr1.cc"
+%require "3.0.4"
+
+%defines
+%define parser_class_name {parser}
+%define api.token.constructor
+%define api.value.type variant
+%define parse.trace
+%define parse.error verbose
+
+%parse-param {automate::Automate* generate_automate}
+
+%code requires
+{
+  class autom_driver;
+}
+// The parsing context.
+%param { autom_driver& driver }
+%locations
+%initial-action
+{
+  // Initialize the initial location.
+  @$.begin.filename = @$.end.filename = &driver.file;
+};
+%code
+{
+# include "parsingDriver.hpp"
+}
+
+%token END 0 "end of file"
+%token <std::string> NAME
+%token <int> NUMBER
+
+%type <automate::Automate*> autom
+%type <automate::Variable> var
+%type <std::vector<automate:Variable>> vars 
+%type <std::pair<std::vector<automate::Variable>,std::vector<automate::Variable>>> actions
+%type <std::vector<int>> allocs frees
+
+%token LACOLADE RACOLADE
+%token START_NODE END_NODE NLINE DOUBLE_SLASH NONE ALL FREE ALLOC
+
+%%
+autom :
+   nodes NLINE DOUBLE_SLASH NLINE arretes { $$ = generate_automate; }
+  |nodes NLINE DOUBLE_SLASH NLINE arretes NLINE { $$ = generate_automate; }
+
+nodes :
+   nodes NLINE node { /*Nothing to do.*/ }
+  |node { /*Nothing to do.*/ }
+
+node :
+   NAME START_NODE{
+     if (generate_automate->start!=nullptr){
+       yy::parser::error (@$,"A start state was already choosen.");
+     }
+     State new_state($1);
+     generate_automate->states.push_back(new_state);
+     std::list<State>::iterator ite = generate_automate->states.end();
+     ite--;
+     generate_automate->start = &(*ite);
+     generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(generate_automate->start, {}));
+   }
+  |NAME END_NODE{
+    State new_state($1);
+    generate_automate->states.push_back(new_state);
+    std::list<State>::iterator ite = generate_automate->states.end();
+    ite--;
+    generate_automate->endStates.push_back(&(*ite));
+    generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(&(*ite), {}));
+  }
+  |NAME{
+    State new_state($1);
+    generate_automate->states.push_back(new_state);
+    std::list<State>::iterator ite = generate_automate->states.end();
+    ite--;
+    generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(&(*ite), {}));
+  }
+  |NAME START_NODE END_NODE {
+    if (generate_automate->start!=nullptr){
+      yy::parser::error (@$,"A start state was already choosen.");
+    }
+    State new_state($1);
+    generate_automate->states.push_back(new_state);
+    std::list<State>::iterator ite = generate_automate->states.end();
+    ite--;
+    generate_automate->start = &(*ite);
+    generate_automate->endStates.push_back(&(*ite));
+    generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(generate_automate->start, {}));
+  }
+  |NAME END_NODE START_NODE {
+    if (generate_automate->start!=nullptr){
+      yy::parser::error (@$,"A start state was already choosen.");
+    }
+    State new_state($1);
+    generate_automate->states.push_back(new_state);
+    std::list<State>::iterator ite = generate_automate->states.end();
+    ite--;
+    generate_automate->start = &(*ite);
+    generate_automate->endStates.push_back(&(*ite));
+    generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(generate_automate->start, {}));
+  }
+
+arretes :
+   arretes NLINE arrete { /*Nothing to do.*/ }
+  |arrete { /*Nothing to do.*/ }
+
+arrete :
+  /*Ori*//*Dest*//*Event*/ /*Alloc-free*/
+   names  names   vars      actions {
+     //Create the new transition for each pairs (origine, destination)
+     for(string ori : $1){
+       State* origine_state = generate_automate->getState(ori);
+       if(origine_state == nullptr){
+         yy::parser::error (@$, "state undeclared : "+ori);
+       }
+       for(string dest : $2){
+         State* destination_state = generate_automate->getState(dest);
+         if(destination_state == nullptr){
+           yy::parser::error (@$, "state undeclared : "+dest);
+         }
+         Transition* new_trans = new Event_Transition(origine_state, destination_state,$4.first, $4.second, $3);
+         generate_automate->transitions[origine_state].push_back(new_trans);
+       }
+     }
+   }
+   /*Ori*//*Dest*//*Event*/
+   |names  names  NONE actions{
+      //Create the new transition for each pairs of origine, destination
+      for(string ori : $1){
+        State* origine_state = generate_automate->getState(ori);
+        if(origine_state == nullptr){
+          yy::parser::error (@$, "state undeclared : "+ori);
+        }
+        for(string dest : $2){
+          State* destination_state = generate_automate->getState(dest);
+          if(destination_state == nullptr){
+            yy::parser::error (@$, "state undeclared : "+dest);
+          }
+          Transition* new_trans = new Epsilon_Transition(origine_state, destination_state, $4.first, $4.second);
+          generate_automate->transitions[origine_state].push_back(new_trans);
+        }
+      }
+    }
+    
+    /*Ori*//*Dest*//*Event*/
+   |names  names  ALL actions{
+      //Create the new transition for each pairs of origine, destination
+      for(string ori : $1){
+        State* origine_state = generate_automate->getState(ori);
+        if(origine_state == nullptr){
+          yy::parser::error (@$, "state undeclared : "+ori);
+        }
+        for(string dest : $2){
+          State* destination_state = generate_automate->getState(dest);
+          if(destination_state == nullptr){
+            yy::parser::error (@$, "state undeclared : "+dest);
+          }
+          Transition* new_trans = new Universal_Transition(origine_state, destination_state, $4.first, $4.second);
+          generate_automate->transitions[origine_state].push_back(new_trans);
+        }
+      }
+    }
+     /*Ori*//*Dest*//*Event*/
+   |names  names  NAME actions{
+      //Create the new transition for each pairs of origine, destination
+      for(string ori : $1){
+        State* origine_state = generate_automate->getState(ori);
+        if(origine_state == nullptr){
+          yy::parser::error (@$, "state undeclared : "+ori);
+        }
+        for(string dest : $2){
+          State* destination_state = generate_automate->getState(dest);
+          if(destination_state == nullptr){
+            yy::parser::error (@$, "state undeclared : "+dest);
+          }
+          Transition* new_trans = new Constant_Transition(origine_state, destination_state, $4.first, $4.second, $3);
+          generate_automate->transitions[origine_state].push_back(new_trans);
+        }
+      }
+    }
+
+vars :
+   vars ';' var { $1.push_back($3); $$ = $1;}
+  | var { $$ = { $1 };}
+
+var : '(' NAME ',' NUMBER ')' { $$ = Variable($2,$4); }
+
+actions :
+   empty {$$= pair<vector<Variable>,vector<Variable>>({},{});}
+  |allocs {$$= pair<vector<Variable>,vector<Variable>>($1,vector<Variable>());}
+  |frees {$$= pair<vector<Variable>,vector<Variable>>(vector<Variable>(),$1);}
+  |frees allocs {$$= pair<vector<Variable>,vector<Variable>>($2,$1);}
+  |allocs frees {$$= pair<vector<Variable>,vector<Variable>>($1,$2);}
+
+allocs :
+  ALLOC vars {
+    for(string const& name : $2){
+      $$.push_back(variable_to_int(name,driver));
+    }
+  }
+
+frees :
+  FREE vars {
+    for(string const& name : $2){
+      $$.push_back(variable_to_int(name,driver));
+    }
+  }
+
+%%
+void yy::parser::error (const yy::location& l,
+                          const std::string& m)
+{
+  driver.error (l, m);
+}
+
+int variable_to_int(string variable_name, autom_driver& driver){
+  int variable = -1;
+  try{
+    variable = driver.map_variable.at(variable_name);
+  }catch(const std::out_of_range& oor){
+    variable = driver.variable_cpt;
+    driver.map_variable[variable_name]=driver.variable_cpt++;
+  }
+  return variable;
+}

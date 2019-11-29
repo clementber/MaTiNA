@@ -170,6 +170,32 @@ string Event_Transition::to_string(){
   return "event";//"{" + std::to_string(triggers) + "}";
 }
 
+//---------------------------Constant-Transition--------------------------------
+Constant_Transition::Constant_Transition(State* const& ori, State* const& dest,
+                                           vector<Variable> allocs, 
+                                           vector<Variable> freez,
+                                           string constant):
+  Transition(ori,dest,allocs,freez),constant(constant) {}
+  
+Constant_Transition::Constant_Transition(State* const& ori, State* const& dest,
+                                         string constant):
+  Transition(ori,dest),constant(constant) {}
+  
+Constant_Transition::~Constant_Transition() = default;
+
+Valuation Constant_Transition::accept_value(Valuation memory, string event){
+  if(constant != event){
+    return Valuation();
+  }
+  memory.alloc(this->allocations);
+  memory.desalloc(this->frees);
+  return memory;
+}
+
+string Constant_Transition::to_string(){
+  return constant;
+}
+
 //--------------------------Universal-Transition--------------------------------
 
 Universal_Transition::Universal_Transition(State* const& ori, State* const& dest,

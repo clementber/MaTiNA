@@ -96,6 +96,18 @@ namespace automate{
     string to_string();
   };
 
+  class Constant_Transition : public Transition{
+  public:
+    string constant;
+    
+    Constant_Transition(State* const& ori, State* const& dest, 
+               vector<Variable> allocs, vector<Variable> freez,string constant);
+    Constant_Transition(State* const& ori, State* const& dest, string constant);
+    ~Constant_Transition();
+    Valuation accept_value(Valuation memory,string event);
+    string to_string();
+  };
+  
   class Universal_Transition : public Transition{
   public:
 
