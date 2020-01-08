@@ -19,8 +19,6 @@ public:
   autom_driver ();
   virtual ~autom_driver ();
 
-  std::map<std::string, int> variables;
-
   int result;
 
 
