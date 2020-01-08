@@ -10,14 +10,27 @@ Valuation::Valuation() : nb_layers(0), nb_variables(0){
   value = NULL;
 }
   
-Valuation::Valuation(int nb_layers, int nb_variables):
+Valuation::Valuation(unsigned int nb_layers, unsigned int nb_variables):
   nb_layers(nb_layers),nb_variables(nb_variables)
 {
   value = new pair<bool,unordered_set<string>>*[nb_layers];
-  for(int i = 0; i< nb_layers; i++){
+  for(unsigned int i = 0; i< nb_layers; i++){
     value[i] = new pair<bool,unordered_set<string>>[nb_variables];
-    for(int j = 0; j< nb_variables; j++){
+    for(unsigned int j = 0; j< nb_variables; j++){
       value[i][j] = pair<bool,unordered_set<string>>(false,unordered_set<string>());
+    }
+  }
+}
+
+Valuation::Valuation(vector<vector<vector<string>>> const& source):
+  nb_layers(source.size())
+{
+  value = new pair<bool,unordered_set<string>>*[nb_layers];
+  for(int i = 0; i< nb_layers; i++){
+    value[i] = new pair<bool,unordered_set<string>>[source[i].size()];
+    for(int j = 0; j< source[i].size(); j++){
+      value[i][j] = pair<bool,unordered_set<string>>(false,unordered_set<string>());
+      value[i][j].second.insert(source[i][j].begin(),source[i][j].end());
     }
   }
 }
@@ -25,16 +38,16 @@ Valuation::Valuation(int nb_layers, int nb_variables):
 Valuation::Valuation(Valuation const& original):nb_layers(original.nb_layers),
   nb_variables(original.nb_variables){
   value = new pair<bool,unordered_set<string>>*[nb_layers];
-  for(int i = 0; i< nb_layers; i++){
+  for(unsigned int i = 0; i< nb_layers; i++){
     value[i] = new pair<bool,unordered_set<string>>[nb_variables];
-    for(int j = 0; j< nb_variables; j++){
+    for(unsigned int j = 0; j< nb_variables; j++){
       value[i][j] = original.value[i][j];
     }
   } 
 }
 
 Valuation::~Valuation(){
-  for(int i= 0; i < nb_layers; i++){ delete[] value[i];}
+  for(unsigned int i= 0; i < nb_layers; i++){ delete[] value[i];}
   if(value != NULL){ delete[] value; }
 }
 

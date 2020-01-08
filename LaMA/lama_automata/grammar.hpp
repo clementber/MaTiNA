@@ -23,14 +23,15 @@ namespace automate{
 
   class Valuation{
     private:
-      int nb_layers, nb_variables;
+      unsigned int nb_layers, nb_variables;
       pair<bool,unordered_set<string>>** value;
       
       bool can_use(vector<Variable> const& to_use, string const& event);
     public:
       Valuation();
-      Valuation(int nb_layers, int nb_variables);
+      Valuation(unsigned int nb_layers, unsigned int nb_variables);
       Valuation(Valuation const& original);
+      Valuation(vector<vector<vector<string>>> const& source);
       ~Valuation();
       
       int get_nb_layers();

@@ -40,7 +40,6 @@ word [[:alpha:]]([[:alnum:]]|"-"|"_")*
 "#A" return (yy::parser::make_ALL(loc));
 "alloc:" return (yy::parser::make_ALLOC(loc));
 "free:" return (yy::parser::make_FREE(loc));
-"reset:" return (yy::parser::make_RESET(loc));
 [0-9]+ return yy::parser::make_NUMBER(std::stod(yytext),loc);
 {word} return yy::parser::make_NAME(yytext,loc);
 <<EOF>> { return yyterminate(); }

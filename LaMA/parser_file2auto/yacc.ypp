@@ -9,7 +9,6 @@
 
   yy::parser::symbol_type yylex (yy::parser::semantic_type *arg);
 
-  int number_variable;
   //int variable_to_int(string variable_name, autom_driver& driver);
 %}
 %skeleton "lalr1.cc"
@@ -35,7 +34,6 @@
 {
   // Initialize the initial location.
   @$.begin.filename = @$.end.filename = &driver.file;
-  number_variable = 0;
 };
 %code
 {
@@ -48,9 +46,9 @@
 
 %type <automate::Automate*> autom
 %type <std::vector<std::string>> names list_name
-%type <automate::Variable> var
-%type <std::vector<automate:Variable>> vars allocs frees
-%type <td::vector<std::vector<std::string>>> layer
+%type <std::pair<int,int>> var
+%type <std::vector<automate::Variable>> vars allocs frees
+%type <std::vector<std::vector<std::string>>> layer
 %type <std::vector<std::vector<std::vector<std::string>>>> init_alloc
 %type <std::pair<std::vector<automate::Variable>,std::vector<automate::Variable>>> actions
 
@@ -60,34 +58,26 @@
 %%
 autom :
   init_alloc NLINE DOUBLE_SLASH nodes NLINE DOUBLE_SLASH NLINE arretes {
-    generate_automate->initial_valuation = Valuation($1.length,number_variable);
-    for(int i = 0; i<$1.length; i++){
-      for(int j = 0; j< $1[i].length; j++){
-        generate_automate[i][j].insert($1[i][j].begin(),$1[i][j].end());
-      }
-    }
+    generate_automate->initial_valuation = Valuation($1);
     $$ = generate_automate; 
   }
   |init_alloc NLINE DOUBLE_SLASH nodes NLINE DOUBLE_SLASH NLINE arretes NLINE {
-    generate_automate->initial_valuation = Valuation($1.length,number_variable);
-    for(int i = 0; i<$1.length; i++){
-      for(int j = 0; j< $1[i].length; j++){
-        generate_automate[i][j].insert($1[i][j].begin(),$1[i][j].end());
-      }
-    }
+    generate_automate->initial_valuation = Valuation($1);
+    $$ = generate_automate;
+  }
+  |nodes NLINE DOUBLE_SLASH NLINE arretes NLINE {
     $$ = generate_automate;
   }
 
 init_alloc :
   layer NLINE init_alloc {
-    number_variable = $1.length>number_variable?$1.length:number_variable;
     $3.push_back($1); 
     $$ = $3;
   }
   | %empty {$$ = {};}
 
 layer : names { $$ = {$1};}
-      | names layers {$2.push_back($1); $$ = $2;}
+      | names layer {$2.push_back($1); $$ = $2;}
 
 nodes :
    nodes NLINE node { /*Nothing to do.*/ }
@@ -226,22 +216,23 @@ arrete :
 
 names :
     LACOLADE list_name RACOLADE {$$ = $2;}
-  | LACOLADE RACOLADE { $$ = vector<std::string>();}
+  | LACOLADE RACOLADE { $$ = vector<std::string>();} //TODO Problème il est possible de mettre des listes vides de noeuds pour les entrées et sorties des arrêtes.
   | NAME {$$ = {$1};}
 
 list_name :
-   list_name COMMA NAME { $1.push_back($3); $$ = $1;}
+   list_name ',' NAME { $1.push_back($3); $$ = $1;}
   | NAME { $$ = { $1 };}
+  
 vars :
-   vars ';' var { $1.push_back($3); $$ = $1;}
-  | var { $$ = { $1 };}
+   vars ',' var { $1.push_back(Variable($3.first,$3.second)); $$ = $1;}
+  | var { $$ = vector<Variable>(); $$.push_back(Variable($1.first,$1.second));}
 
-var : '(' NAME ',' NUMBER ')' { $$ = Variable($2,$4); }
+var : '(' NUMBER ',' NUMBER ')' { $$ = pair<int,int>($2,$4); }
 
 actions :
    %empty {$$= pair<vector<Variable>,vector<Variable>>({},{});}
-  |allocs {$$= pair<vector<Variable>,vector<Variable>>($1,vector<Variable>());}
-  |frees {$$= pair<vector<Variable>,vector<Variable>>(vector<Variable>(),$1);}
+  |allocs {$$= pair<vector<Variable>,vector<Variable>>($1,{});}
+  |frees {$$= pair<vector<Variable>,vector<Variable>>({},$1);}
   |frees allocs {$$= pair<vector<Variable>,vector<Variable>>($2,$1);}
   |allocs frees {$$= pair<vector<Variable>,vector<Variable>>($1,$2);}
 
@@ -252,7 +243,7 @@ allocs :
 
 frees :
   FREE vars {
-    $$=$2
+    $$=$2;
   }
 
 %%
