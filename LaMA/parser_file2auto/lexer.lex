@@ -32,8 +32,11 @@ word [[:alpha:]]([[:alnum:]]|"-"|"_")*
 \n* return (yy::parser::make_NLINE(loc));
 [ \t]
 "//" return (yy::parser::make_DOUBLE_SLASH(loc));
+"(" return (yy::parser::make_L_PARENTHESE(loc));
+")" return (yy::parser::make_R_PARENTHESE(loc));
 "{" return (yy::parser::make_LACOLADE(loc));
 "}" return (yy::parser::make_RACOLADE(loc));
+"," return (yy::parser::make_COMMA(loc));
 "#S" return (yy::parser::make_START_NODE(loc));
 "#E" return (yy::parser::make_END_NODE(loc));
 "#N" return (yy::parser::make_NONE(loc));

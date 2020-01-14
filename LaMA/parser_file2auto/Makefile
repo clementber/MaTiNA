@@ -1,6 +1,6 @@
 all: libautomatefromfile.a
 
-test :  ../lama_automata/grammar.o yacc.tab.o lexer.yy.o parsingDriver.o ../lama_automata/toDot.o main.o
+test :  ../lama_automata/grammar.o yacc.tab.o lexer.yy.o parsingDriver.o main.o #../lama_automata/toDot.o
 	g++ -O3 -std=c++11 -Wall -Wextra -o $@ $^
 
 libautomatefromfile.a: yacc.tab.o lexer.yy.o ../lama_automata/grammar.o parsingDriver.o

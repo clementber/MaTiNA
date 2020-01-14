@@ -19,19 +19,20 @@ namespace automate{
      int name, layer;
      
      Variable(int name, int layer);
+     string to_string() const;
   }; 
 
   class Valuation{
     private:
       unsigned int nb_layers, nb_variables;
-      pair<bool,unordered_set<string>>** value;
+      vector<vector<pair<bool,unordered_set<string>>>> value;
       
       bool can_use(vector<Variable> const& to_use, string const& event);
     public:
       Valuation();
       Valuation(unsigned int nb_layers, unsigned int nb_variables);
       Valuation(Valuation const& original);
-      Valuation(vector<vector<vector<string>>> const& source);
+      Valuation(vector<vector<vector<string>>> const& source, int nb_variables);
       ~Valuation();
       
       int get_nb_layers();
@@ -40,7 +41,7 @@ namespace automate{
       void alloc(vector<Variable> const& to_alloc);
       void desalloc(vector<Variable> const& to_free);
       bool use(vector<Variable> const& to_use, string const& event);
-      bool isNull() const;
+      string to_string() const;
   };
 
   class State{
@@ -70,7 +71,7 @@ namespace automate{
     virtual ~Transition();
     virtual Valuation accept_epsilon(Valuation memory);
     virtual Valuation accept_value(Valuation memory,string event);
-    virtual string to_string()=0;
+    virtual string to_string() const =0;
   };
 
   class Epsilon_Transition : public Transition{
@@ -80,21 +81,21 @@ namespace automate{
     Epsilon_Transition(State* const& ori, State* const& dest);
     ~Epsilon_Transition();
     Valuation accept_epsilon(Valuation memory);
-    string to_string();
+    string to_string() const;
   };
 
-  class Event_Transition : public Transition{
+  class Var_Transition : public Transition{
   public:
     vector<Variable> triggers;
 
-    Event_Transition(State* const& ori, State* const& dest, 
+    Var_Transition(State* const& ori, State* const& dest, 
                vector<Variable> allocs, vector<Variable> freez, 
                vector<Variable> var);
-    Event_Transition(State* const& ori, State* const& dest, 
+    Var_Transition(State* const& ori, State* const& dest, 
                      vector<Variable> variable);
-    ~Event_Transition();
+    ~Var_Transition();
     Valuation accept_value(Valuation memory,string event);
-    string to_string();
+    string to_string() const;
   };
 
   class Constant_Transition : public Transition{
@@ -106,7 +107,7 @@ namespace automate{
     Constant_Transition(State* const& ori, State* const& dest, string constant);
     ~Constant_Transition();
     Valuation accept_value(Valuation memory,string event);
-    string to_string();
+    string to_string() const;
   };
   
   class Universal_Transition : public Transition{
@@ -117,7 +118,7 @@ namespace automate{
     Universal_Transition(State* const& ori, State* const& dest);
     ~Universal_Transition();
     Valuation accept_value(Valuation memory,string constant);
-    string to_string();
+    string to_string() const;
   };
 
   class Automate{

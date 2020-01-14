@@ -1,55 +1,52 @@
 #include "grammar.hpp"
+#include <sstream>
+#include <iostream>
+
 using namespace automate;
 using namespace std;
 
 //---------------------------------------Variable-------------------------------
 Variable::Variable(int name, int layer): name(name),layer(layer){ }
 
-//-----------------------Memory Valuation---------------------------------------
-Valuation::Valuation() : nb_layers(0), nb_variables(0){
-  value = NULL;
+string Variable::to_string() const{
+  stringstream res;
+  res << "("<<name<<","<<layer<<")";
+  return res.str();
 }
+//-----------------------Memory Valuation---------------------------------------
+Valuation::Valuation() : nb_layers(0), nb_variables(0),value(0){}
   
 Valuation::Valuation(unsigned int nb_layers, unsigned int nb_variables):
-  nb_layers(nb_layers),nb_variables(nb_variables)
+  nb_layers(nb_layers),nb_variables(nb_variables), value(nb_layers)
 {
-  value = new pair<bool,unordered_set<string>>*[nb_layers];
   for(unsigned int i = 0; i< nb_layers; i++){
-    value[i] = new pair<bool,unordered_set<string>>[nb_variables];
+    value[i] = vector<pair<bool,unordered_set<string>>>(nb_variables);
     for(unsigned int j = 0; j< nb_variables; j++){
       value[i][j] = pair<bool,unordered_set<string>>(false,unordered_set<string>());
     }
   }
 }
 
-Valuation::Valuation(vector<vector<vector<string>>> const& source):
-  nb_layers(source.size())
+Valuation::Valuation(vector<vector<vector<string>>> const& source, int nb_vars):
+  nb_layers(source.size()), nb_variables(nb_vars), value(nb_layers)
 {
-  value = new pair<bool,unordered_set<string>>*[nb_layers];
-  for(int i = 0; i< nb_layers; i++){
-    value[i] = new pair<bool,unordered_set<string>>[source[i].size()];
-    for(int j = 0; j< source[i].size(); j++){
+  for(unsigned int i = 0; i< nb_layers; i++){
+    value[i] = vector<pair<bool,unordered_set<string>>>(nb_variables);
+    unsigned int j(0);
+    for(; j< source[i].size(); j++){
       value[i][j] = pair<bool,unordered_set<string>>(false,unordered_set<string>());
       value[i][j].second.insert(source[i][j].begin(),source[i][j].end());
+    }
+    for(;j< nb_variables; j++){
+      value[i][j] = pair<bool,unordered_set<string>>(false,unordered_set<string>());
     }
   }
 }
 
 Valuation::Valuation(Valuation const& original):nb_layers(original.nb_layers),
-  nb_variables(original.nb_variables){
-  value = new pair<bool,unordered_set<string>>*[nb_layers];
-  for(unsigned int i = 0; i< nb_layers; i++){
-    value[i] = new pair<bool,unordered_set<string>>[nb_variables];
-    for(unsigned int j = 0; j< nb_variables; j++){
-      value[i][j] = original.value[i][j];
-    }
-  } 
-}
+  nb_variables(original.nb_variables), value(original.value){}
 
-Valuation::~Valuation(){
-  for(unsigned int i= 0; i < nb_layers; i++){ delete[] value[i];}
-  if(value != NULL){ delete[] value; }
-}
+Valuation::~Valuation()= default;
 
 int Valuation::get_nb_layers(){ return nb_layers; }
 
@@ -57,7 +54,7 @@ int Valuation::get_nb_variables(){ return nb_variables; }
 
 //TODO optimize
 bool Valuation::isFresh(int const& layer, string const& event) const{
-  for(int i = 0; i < nb_variables; i++){
+  for(unsigned int i = 0; i < nb_variables; i++){
     if(value[layer][i].second.find(event) != value[layer][i].second.end()){
       return false;
     }
@@ -105,8 +102,20 @@ bool Valuation::use(vector<Variable> const& to_use, string const& event){
   return true;
 }
 
-bool Valuation::isNull() const{
-  return value==NULL;
+string Valuation::to_string() const{
+  stringstream res;
+  for(unsigned int i = 0; i < nb_layers; i++){
+    res << "L"<< i << ": ";
+    for(unsigned int j = 0; j < nb_variables; j++){
+      res << "{";
+      for(string val : value[i][j].second){
+        res << val << ",";
+      }
+      res << "}" << ((value[i][j].first)?"* ":" ");
+    }
+    res << "\n";
+  }
+  return res.str();
 }
 
 //-----------------------State--------------------------------------------------
@@ -149,27 +158,26 @@ Valuation Epsilon_Transition::accept_epsilon(Valuation memory){
   memory.desalloc(this->frees);
   return memory;
 }
-string Epsilon_Transition::to_string(){
-  //TODO
+string Epsilon_Transition::to_string() const{
   return "epsi";
 }
 
 
 //-------------------------Event-Transition-------------------------------------
 
-Event_Transition::Event_Transition(State* const& ori, State* const& dest,
+Var_Transition::Var_Transition(State* const& ori, State* const& dest,
                                    vector<Variable> allocs,
                                    vector<Variable> freez, 
                                    vector<Variable> triggers):
   Transition(ori,dest,allocs,freez),triggers(triggers){}
   
-Event_Transition::Event_Transition(State* const& ori, State* const& dest, 
+Var_Transition::Var_Transition(State* const& ori, State* const& dest, 
                                    vector<Variable> triggers):
   Transition(ori,dest), triggers(triggers){}
   
-Event_Transition::~Event_Transition() = default;
+Var_Transition::~Var_Transition() = default;
 
-Valuation Event_Transition::accept_value(Valuation memory, string event){
+Valuation Var_Transition::accept_value(Valuation memory, string event){
   memory.alloc(this->allocations);
   if(!memory.use(this->triggers, event)){
     return Valuation();
@@ -178,9 +186,12 @@ Valuation Event_Transition::accept_value(Valuation memory, string event){
   return memory;
 }
 
-string Event_Transition::to_string(){
-  //TODO
-  return "event";//"{" + std::to_string(triggers) + "}";
+string Var_Transition::to_string() const{
+  stringstream res;
+  for(Variable const& var : this->triggers){
+    res << var.to_string() <<" ";
+  }
+  return res.str();
 }
 
 //---------------------------Constant-Transition--------------------------------
@@ -205,7 +216,7 @@ Valuation Constant_Transition::accept_value(Valuation memory, string event){
   return memory;
 }
 
-string Constant_Transition::to_string(){
+string Constant_Transition::to_string() const{
   return constant;
 }
 
@@ -228,7 +239,7 @@ Valuation Universal_Transition::accept_value(Valuation memory, string event){
   return memory;
 }
 
-string Universal_Transition::to_string(){
+string Universal_Transition::to_string() const{
   return "@";
 }
 

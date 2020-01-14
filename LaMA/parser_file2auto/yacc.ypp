@@ -8,7 +8,7 @@
   using namespace automate;
 
   yy::parser::symbol_type yylex (yy::parser::semantic_type *arg);
-
+  unsigned int nb_vars(0);
   //int variable_to_int(string variable_name, autom_driver& driver);
 %}
 %skeleton "lalr1.cc"
@@ -34,6 +34,7 @@
 {
   // Initialize the initial location.
   @$.begin.filename = @$.end.filename = &driver.file;
+  nb_vars = 0;
 };
 %code
 {
@@ -52,32 +53,30 @@
 %type <std::vector<std::vector<std::vector<std::string>>>> init_alloc
 %type <std::pair<std::vector<automate::Variable>,std::vector<automate::Variable>>> actions
 
-%token LACOLADE RACOLADE
+%token LACOLADE RACOLADE COMMA R_PARENTHESE L_PARENTHESE
 %token START_NODE END_NODE NLINE DOUBLE_SLASH NONE ALL FREE ALLOC
 
 %%
 autom :
-  init_alloc NLINE DOUBLE_SLASH nodes NLINE DOUBLE_SLASH NLINE arretes {
-    generate_automate->initial_valuation = Valuation($1);
-    $$ = generate_automate; 
-  }
-  |init_alloc NLINE DOUBLE_SLASH nodes NLINE DOUBLE_SLASH NLINE arretes NLINE {
-    generate_automate->initial_valuation = Valuation($1);
+  init_alloc NLINE DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH NLINE arretes NLINE {
+    generate_automate->initial_valuation = Valuation ($1,nb_vars);
     $$ = generate_automate;
   }
-  |nodes NLINE DOUBLE_SLASH NLINE arretes NLINE {
+  /*|nodes NLINE DOUBLE_SLASH NLINE arretes NLINE {
     $$ = generate_automate;
-  }
+  }*/
 
 init_alloc :
-  layer NLINE init_alloc {
-    $3.push_back($1); 
-    $$ = $3;
+  init_alloc NLINE layer {
+    $1.push_back($3); 
+    nb_vars = nb_vars < $3.size()?$3.size():nb_vars;
+    $$ = $1;
   }
+  | layer {$$ = {$1};}
   | %empty {$$ = {};}
 
-layer : names { $$ = {$1};}
-      | names layer {$2.push_back($1); $$ = $2;}
+layer : names { $$ = {$1}; }
+      | layer names  {$1.push_back($2); $$ = $1; }
 
 nodes :
    nodes NLINE node { /*Nothing to do.*/ }
@@ -88,24 +87,21 @@ node :
      if (generate_automate->start!=nullptr){
        yy::parser::error (@$,"A start state was already choosen.");
      }
-     State new_state($1);
-     generate_automate->states.push_back(new_state);
+     generate_automate->states.push_back(State($1));
      std::list<State>::iterator ite = generate_automate->states.end();
      ite--;
      generate_automate->start = &(*ite);
      generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(generate_automate->start, {}));
    }
   |NAME END_NODE{
-    State new_state($1);
-    generate_automate->states.push_back(new_state);
+    generate_automate->states.push_back(State($1));
     std::list<State>::iterator ite = generate_automate->states.end();
     ite--;
     generate_automate->endStates.push_back(&(*ite));
     generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(&(*ite), {}));
   }
   |NAME{
-    State new_state($1);
-    generate_automate->states.push_back(new_state);
+    generate_automate->states.push_back(State($1));
     std::list<State>::iterator ite = generate_automate->states.end();
     ite--;
     generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(&(*ite), {}));
@@ -114,8 +110,7 @@ node :
     if (generate_automate->start!=nullptr){
       yy::parser::error (@$,"A start state was already choosen.");
     }
-    State new_state($1);
-    generate_automate->states.push_back(new_state);
+    generate_automate->states.push_back(State($1));
     std::list<State>::iterator ite = generate_automate->states.end();
     ite--;
     generate_automate->start = &(*ite);
@@ -126,8 +121,7 @@ node :
     if (generate_automate->start!=nullptr){
       yy::parser::error (@$,"A start state was already choosen.");
     }
-    State new_state($1);
-    generate_automate->states.push_back(new_state);
+    generate_automate->states.push_back(State($1));
     std::list<State>::iterator ite = generate_automate->states.end();
     ite--;
     generate_automate->start = &(*ite);
@@ -153,7 +147,7 @@ arrete :
          if(destination_state == nullptr){
            yy::parser::error (@$, "state undeclared : "+dest);
          }
-         Transition* new_trans = new Event_Transition(origine_state, destination_state,$4.first, $4.second, $3);
+         Transition* new_trans = new Var_Transition(origine_state, destination_state,$4.first, $4.second, $3);
          generate_automate->transitions[origine_state].push_back(new_trans);
        }
      }
@@ -216,18 +210,20 @@ arrete :
 
 names :
     LACOLADE list_name RACOLADE {$$ = $2;}
-  | LACOLADE RACOLADE { $$ = vector<std::string>();} //TODO Problème il est possible de mettre des listes vides de noeuds pour les entrées et sorties des arrêtes.
+  | LACOLADE RACOLADE { $$ = vector<std::string>();} 
+    //TODO Problème il est possible de mettre des listes vides de noeuds pour 
+    // les entrées et sorties des arrêtes.
   | NAME {$$ = {$1};}
 
 list_name :
-   list_name ',' NAME { $1.push_back($3); $$ = $1;}
+   list_name COMMA NAME { $1.push_back($3); $$ = $1;}
   | NAME { $$ = { $1 };}
   
 vars :
-   vars ',' var { $1.push_back(Variable($3.first,$3.second)); $$ = $1;}
+   vars COMMA var { $1.push_back(Variable($3.first,$3.second)); $$ = $1;}
   | var { $$ = vector<Variable>(); $$.push_back(Variable($1.first,$1.second));}
 
-var : '(' NUMBER ',' NUMBER ')' { $$ = pair<int,int>($2,$4); }
+var : L_PARENTHESE NUMBER COMMA NUMBER R_PARENTHESE { $$ = pair<int,int>($2,$4); }
 
 actions :
    %empty {$$= pair<vector<Variable>,vector<Variable>>({},{});}
