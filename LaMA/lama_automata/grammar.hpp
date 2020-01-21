@@ -24,10 +24,11 @@ namespace automate{
 
   class Valuation{
     private:
-      unsigned int nb_layers, nb_variables;
+      unsigned int nb_variables;
       vector<vector<pair<bool,unordered_set<string>>>> value;
       
       bool can_use(vector<Variable> const& to_use, string const& event);
+      
     public:
       Valuation();
       Valuation(unsigned int nb_layers, unsigned int nb_variables);
@@ -35,12 +36,13 @@ namespace automate{
       Valuation(vector<vector<vector<string>>> const& source, int nb_variables);
       ~Valuation();
       
-      int get_nb_layers();
-      int get_nb_variables();
+      unsigned int nb_layers() const;
+      unsigned int get_nb_variables() const;
       bool isFresh(int const& layer, string const& event) const;
       void alloc(vector<Variable> const& to_alloc);
       void desalloc(vector<Variable> const& to_free);
       bool use(vector<Variable> const& to_use, string const& event);
+      Valuation join(Valuation const& val) const; //union
       string to_string() const;
   };
 
@@ -71,6 +73,7 @@ namespace automate{
     virtual ~Transition();
     virtual Valuation accept_epsilon(Valuation memory);
     virtual Valuation accept_value(Valuation memory,string event);
+    virtual Transition* copy() const= 0;
     virtual string to_string() const =0;
   };
 
@@ -81,6 +84,7 @@ namespace automate{
     Epsilon_Transition(State* const& ori, State* const& dest);
     ~Epsilon_Transition();
     Valuation accept_epsilon(Valuation memory);
+    Transition* copy() const;
     string to_string() const;
   };
 
@@ -95,6 +99,7 @@ namespace automate{
                      vector<Variable> variable);
     ~Var_Transition();
     Valuation accept_value(Valuation memory,string event);
+    Transition* copy() const;
     string to_string() const;
   };
 
@@ -107,6 +112,7 @@ namespace automate{
     Constant_Transition(State* const& ori, State* const& dest, string constant);
     ~Constant_Transition();
     Valuation accept_value(Valuation memory,string event);
+    Transition* copy() const;
     string to_string() const;
   };
   
@@ -118,6 +124,7 @@ namespace automate{
     Universal_Transition(State* const& ori, State* const& dest);
     ~Universal_Transition();
     Valuation accept_value(Valuation memory,string constant);
+    Transition* copy() const;
     string to_string() const;
   };
 
@@ -129,14 +136,20 @@ namespace automate{
     State* start;
     vector<State*> endStates;
 
-      Automate();
-      Automate(Valuation initial_valuation, list<State> p_states, 
-               map<State*, vector<Transition*>> p_transitions, State* p_start, 
-               vector<State*> p_endStates);
+    Automate();
+    Automate(Valuation initial_valuation, list<State> p_states, 
+             map<State*, vector<Transition*>> p_transitions, State* p_start, 
+             vector<State*> p_endStates);
 
-      ~Automate();
-      State* getState(string state_name);
+    ~Automate();
+    State* getState(string state_name);
   };
+  
+  //Fusion of Automata
+  Automate concatenation(Automate & prefix, Automate & sufixe);
+  Automate disjonction(Automate & automate1, Automate & automate2);
+  Automate intersection(Automate & automate1, Automate & automate2);
+  Automate iteration(Automate & automate, vector<int> evolving_layers);
 };
 
 #endif

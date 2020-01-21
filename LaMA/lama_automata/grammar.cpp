@@ -1,6 +1,5 @@
 #include "grammar.hpp"
 #include <sstream>
-#include <iostream>
 
 using namespace automate;
 using namespace std;
@@ -14,10 +13,10 @@ string Variable::to_string() const{
   return res.str();
 }
 //-----------------------Memory Valuation---------------------------------------
-Valuation::Valuation() : nb_layers(0), nb_variables(0),value(0){}
+Valuation::Valuation() : value(0){}
   
 Valuation::Valuation(unsigned int nb_layers, unsigned int nb_variables):
-  nb_layers(nb_layers),nb_variables(nb_variables), value(nb_layers)
+  nb_variables(nb_variables), value(nb_layers)
 {
   for(unsigned int i = 0; i< nb_layers; i++){
     value[i] = vector<pair<bool,unordered_set<string>>>(nb_variables);
@@ -28,9 +27,9 @@ Valuation::Valuation(unsigned int nb_layers, unsigned int nb_variables):
 }
 
 Valuation::Valuation(vector<vector<vector<string>>> const& source, int nb_vars):
-  nb_layers(source.size()), nb_variables(nb_vars), value(nb_layers)
+  nb_variables(nb_vars), value(source.size())
 {
-  for(unsigned int i = 0; i< nb_layers; i++){
+  for(unsigned int i = 0; i< source.size(); i++){
     value[i] = vector<pair<bool,unordered_set<string>>>(nb_variables);
     unsigned int j(0);
     for(; j< source[i].size(); j++){
@@ -43,14 +42,14 @@ Valuation::Valuation(vector<vector<vector<string>>> const& source, int nb_vars):
   }
 }
 
-Valuation::Valuation(Valuation const& original):nb_layers(original.nb_layers),
+Valuation::Valuation(Valuation const& original):
   nb_variables(original.nb_variables), value(original.value){}
 
 Valuation::~Valuation()= default;
 
-int Valuation::get_nb_layers(){ return nb_layers; }
+unsigned int Valuation::nb_layers() const { return value.size(); }
 
-int Valuation::get_nb_variables(){ return nb_variables; }
+unsigned int Valuation::get_nb_variables() const { return nb_variables; }
 
 //TODO optimize
 bool Valuation::isFresh(int const& layer, string const& event) const{
@@ -102,9 +101,37 @@ bool Valuation::use(vector<Variable> const& to_use, string const& event){
   return true;
 }
 
+Valuation Valuation::join(Valuation const& val2) const{
+  Valuation res(*this);
+  res.value.resize((nb_layers()< val2.nb_layers())?val2.nb_layers():nb_layers());
+  res.nb_variables = (nb_variables< val2.nb_variables)?val2.nb_variables:nb_variables;
+  unsigned int common_layers = (nb_layers()> val2.nb_layers())?val2.nb_layers():nb_layers();
+  unsigned int common_vars = (nb_variables> val2.nb_variables)?val2.nb_variables:nb_variables;
+  unsigned int i=0;
+  for(; i< common_layers;i++){
+    unsigned int j = 0;
+    for(; j < common_vars; j++){
+      res.value[i][j].second.insert(val2.value[i][j].second.begin(),val2.value[i][j].second.end());
+    }
+    for(; j < val2.nb_variables; j++){
+      res.value[i][j] = val2.value[i][j];
+    }
+  }
+  for(; i < val2.nb_layers(); i++){
+    unsigned int j = 0;
+    for(; j< val2.nb_variables;j++){
+      res.value[i][j] = val2.value[i][j];
+    }
+    for(;j < this->nb_variables; j++){
+      res.value[i][j] = pair<bool,unordered_set<string>>(false, unordered_set<string>());
+    }
+  }
+  return res;
+}
+
 string Valuation::to_string() const{
   stringstream res;
-  for(unsigned int i = 0; i < nb_layers; i++){
+  for(unsigned int i = 0; i < nb_layers(); i++){
     res << "L"<< i << ": ";
     for(unsigned int j = 0; j < nb_variables; j++){
       res << "{";
@@ -158,6 +185,11 @@ Valuation Epsilon_Transition::accept_epsilon(Valuation memory){
   memory.desalloc(this->frees);
   return memory;
 }
+
+Transition* Epsilon_Transition::copy() const{
+  return new Epsilon_Transition(*this);
+}
+
 string Epsilon_Transition::to_string() const{
   return "epsi";
 }
@@ -184,6 +216,10 @@ Valuation Var_Transition::accept_value(Valuation memory, string event){
   }
   memory.desalloc(this->frees);
   return memory;
+}
+
+Transition* Var_Transition::copy() const{
+  return new Var_Transition(*this);
 }
 
 string Var_Transition::to_string() const{
@@ -216,6 +252,10 @@ Valuation Constant_Transition::accept_value(Valuation memory, string event){
   return memory;
 }
 
+Transition* Constant_Transition::copy() const{
+  return new Constant_Transition(*this);
+}
+
 string Constant_Transition::to_string() const{
   return constant;
 }
@@ -238,6 +278,11 @@ Valuation Universal_Transition::accept_value(Valuation memory, string event){
 
   return memory;
 }
+
+Transition* Universal_Transition::copy() const{
+  return new Universal_Transition(*this);
+}
+
 
 string Universal_Transition::to_string() const{
   return "@";
@@ -268,4 +313,67 @@ State* Automate::getState(string state_name){
     }
   }
   return nullptr;
+}
+
+//---------------------Fusion of Automata---------------------------------------
+
+Automate *concatenation(Automate & prefix, Automate & suffix){
+  Automate * generated_autom = new Automate();
+  map<State*,State*> prefix_states,suffix_states;
+  for(State & state : prefix.states){
+    generated_autom->states.push_back(state);
+    prefix_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
+  }
+  for(State & state : suffix.states){
+    generated_autom->states.push_back(state);
+    suffix_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
+  }
+  generated_autom->start = prefix_states.at(prefix.start);
+  for(State * end_state : suffix.endStates){
+    generated_autom->endStates.push_back(suffix_states.at(end_state));
+  }
+  for(pair<State*,vector<Transition*>> elmt : prefix.transitions){
+    vector<Transition*> trans_vec = generated_autom->transitions.
+        insert(pair<State*,vector<Transition*>>(
+                        prefix_states.at(elmt.first),{})).first->second;
+    for(Transition* const& prefix_trans : elmt.second){
+      Transition* new_trans = prefix_trans->copy();
+      new_trans->origine = prefix_states.at(prefix_trans->origine);
+      for(State* endState : prefix.endStates){
+        if(endState == new_trans->destination){
+          Transition * end_trans = new_trans->copy();
+          end_trans->destination = suffix_states.at(suffix.start);
+          trans_vec.push_back(end_trans);
+          break;
+        }
+      }
+      new_trans->destination = prefix_states.at(prefix_trans->destination);
+      trans_vec.push_back(new_trans);
+    } 
+  }
+  for(pair<State*,vector<Transition*>> elmt : suffix.transitions){
+    vector<Transition*> trans_vec = generated_autom->transitions.
+        insert(pair<State*,vector<Transition*>>(
+                      suffix_states.at(elmt.first),{})).first->second;
+    for(Transition* const& suffix_trans : elmt.second){
+      Transition* new_trans = suffix_trans->copy();
+      trans_vec.push_back(new_trans);
+      new_trans->origine = suffix_states.at(suffix_trans->origine);
+      new_trans->destination = suffix_states.at(suffix_trans->destination);
+    } 
+  }
+  
+  return generated_autom;
+}
+
+Automate *disjonction(Automate & automate1, Automate & automate2){
+
+}
+
+Automate *intersection(Automate & automate1, Automate & automate2){
+
+}
+
+Automate *iteration(Automate & automate, vector<int> evolving_layers){
+
 }
