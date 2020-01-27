@@ -1,5 +1,6 @@
 #include "grammar.hpp"
 #include <sstream>
+#include <iostream>
 
 using namespace automate;
 using namespace std;
@@ -315,34 +316,85 @@ State* Automate::getState(string state_name){
   return nullptr;
 }
 
+string Automate::to_string() const{
+  stringstream res;
+  res << "Initial Valuation :\n" << initial_valuation.to_string();
+  res <<"\n";
+  res << "List of states : " <<states.size() <<"\n";
+  for(State const& st : states){
+    res << "\t" << st.id << " ";
+    if(&st==start){ res << "#S ";}
+    for(State * endState : endStates) {
+      if(&st == endState) {
+        res << "#E";
+        break;
+      }
+    }
+    res << "\n";
+  }
+  res << "List of edges : ";
+  int number_edges(0);
+  for(auto const& elmt : transitions)
+    number_edges+= elmt.second.size();
+  res << number_edges << "\n";
+  for(auto elmt : transitions){
+    for(Transition * trans : elmt.second){
+      res << "\t" << trans->origine->id << "->" << trans->destination->id << " : ";
+      res << trans->to_string() ;
+
+      if(!trans->allocations.empty()){
+        res << "  nu : {" << trans->allocations[0].to_string();
+        for(unsigned int i = 1;i< trans->allocations.size(); i++){
+          res << ", " << trans->allocations[i].to_string();
+        }
+        res << "}";
+      }
+      if(!trans->frees.empty()){
+        res << "  free : {" << trans->frees[0].to_string();
+        for(unsigned int i = 1;i< trans->frees.size(); i++){
+          res << ", " << trans->frees[i].to_string();
+        }
+        res << "}";
+      }
+      res << "\n";
+    }
+  }
+  return res.str();
+}
+
 //---------------------Fusion of Automata---------------------------------------
 
-Automate *concatenation(Automate & prefix, Automate & suffix){
+Automate *automate::concatenation(Automate * prefix, Automate * suffix){
   Automate * generated_autom = new Automate();
+  //Copy states in the new automaton. Create dictionnary for pointers
   map<State*,State*> prefix_states,suffix_states;
-  for(State & state : prefix.states){
+  for(State & state : prefix->states){
     generated_autom->states.push_back(state);
     prefix_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
   }
-  for(State & state : suffix.states){
+  for(State & state : suffix->states){
     generated_autom->states.push_back(state);
     suffix_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
   }
-  generated_autom->start = prefix_states.at(prefix.start);
-  for(State * end_state : suffix.endStates){
+  //Set initial and final states
+  generated_autom->start = prefix_states.at(prefix->start);
+  for(State * end_state : suffix->endStates){
     generated_autom->endStates.push_back(suffix_states.at(end_state));
   }
-  for(pair<State*,vector<Transition*>> elmt : prefix.transitions){
-    vector<Transition*> trans_vec = generated_autom->transitions.
+  //Copy the transitions of the prefix automaton
+  for(pair<State*,vector<Transition*>> elmt : prefix->transitions){
+    vector<Transition*>& trans_vec = generated_autom->transitions.
         insert(pair<State*,vector<Transition*>>(
                         prefix_states.at(elmt.first),{})).first->second;
     for(Transition* const& prefix_trans : elmt.second){
       Transition* new_trans = prefix_trans->copy();
       new_trans->origine = prefix_states.at(prefix_trans->origine);
-      for(State* endState : prefix.endStates){
+      //Each final transitions a copied an other time to head to the initial 
+      //state of the suffix automaton.
+      for(State* endState : prefix->endStates){
         if(endState == new_trans->destination){
           Transition * end_trans = new_trans->copy();
-          end_trans->destination = suffix_states.at(suffix.start);
+          end_trans->destination = suffix_states.at(suffix->start);
           trans_vec.push_back(end_trans);
           break;
         }
@@ -351,8 +403,9 @@ Automate *concatenation(Automate & prefix, Automate & suffix){
       trans_vec.push_back(new_trans);
     } 
   }
-  for(pair<State*,vector<Transition*>> elmt : suffix.transitions){
-    vector<Transition*> trans_vec = generated_autom->transitions.
+  // Copy the transitions of the suffix automaton.
+  for(pair<State*,vector<Transition*>> elmt : suffix->transitions){
+    vector<Transition*>& trans_vec = generated_autom->transitions.
         insert(pair<State*,vector<Transition*>>(
                       suffix_states.at(elmt.first),{})).first->second;
     for(Transition* const& suffix_trans : elmt.second){
@@ -362,18 +415,70 @@ Automate *concatenation(Automate & prefix, Automate & suffix){
       new_trans->destination = suffix_states.at(suffix_trans->destination);
     } 
   }
+  //Create the initial valuation of the automaton.
+  generated_autom->initial_valuation = prefix->initial_valuation.join(suffix->initial_valuation);
   
   return generated_autom;
 }
 
-Automate *disjonction(Automate & automate1, Automate & automate2){
-
+Automate *automate::disjonction(Automate * autom1, Automate * autom2){
+  Automate * generated_autom = new Automate();
+  //Copy states in the new automaton. Create dictionnary for pointers
+  map<State*,State*> autom1_states,autom2_states;
+  for(State & state : autom1->states){
+    generated_autom->states.push_back(state);
+    autom1_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
+  }
+  for(State & state : autom2->states){
+    generated_autom->states.push_back(state);
+    autom2_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
+  }
+  //Set final states
+  for(State * end_state : autom1->endStates){
+    generated_autom->endStates.push_back(autom1_states.at(end_state));
+  }
+  for(State * end_state : autom2->endStates){
+    generated_autom->endStates.push_back(autom2_states.at(end_state));
+  }
+  //Set initial state and initial transitions.
+  generated_autom->states.push_back(State(autom1->start->id +"|"+autom2->start->id));
+  generated_autom->start = &*(--generated_autom->states.end());
+  generated_autom->transitions[generated_autom->start].push_back(new Epsilon_Transition(generated_autom->start,autom1_states[autom1->start]));
+  generated_autom->transitions[generated_autom->start].push_back(new Epsilon_Transition(generated_autom->start,autom2_states[autom2->start]));
+  //Copy the transitions of the autom1 automaton
+  for(pair<State*,vector<Transition*>> elmt : autom1->transitions){
+    vector<Transition*>& trans_vec = generated_autom->transitions.
+        insert(pair<State*,vector<Transition*>>(
+                        autom1_states.at(elmt.first),{})).first->second;
+    for(Transition* const& autom1_trans : elmt.second){
+      Transition* new_trans = autom1_trans->copy();
+      new_trans->origine = autom1_states.at(autom1_trans->origine);
+      new_trans->destination = autom1_states.at(autom1_trans->destination);
+      trans_vec.push_back(new_trans);
+    } 
+  }
+  // Copy the transitions of the autom2 automaton.
+  for(pair<State*,vector<Transition*>> elmt : autom2->transitions){
+    vector<Transition*>& trans_vec = generated_autom->transitions.
+        insert(pair<State*,vector<Transition*>>(
+                      autom2_states.at(elmt.first),{})).first->second;
+    for(Transition* const& autom2_trans : elmt.second){
+      Transition* new_trans = autom2_trans->copy();
+      new_trans->origine = autom2_states.at(autom2_trans->origine);
+      new_trans->destination = autom2_states.at(autom2_trans->destination);
+      trans_vec.push_back(new_trans);
+    } 
+  }
+  //Create the initial valuation of the automaton.
+  generated_autom->initial_valuation = autom1->initial_valuation.join(autom2->initial_valuation);
+  
+  return generated_autom;
 }
 
-Automate *intersection(Automate & automate1, Automate & automate2){
+/*Automate *intersection(Automate & automate1, Automate & automate2){
 
 }
 
 Automate *iteration(Automate & automate, vector<int> evolving_layers){
 
-}
+}*/

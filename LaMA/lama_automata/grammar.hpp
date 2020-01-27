@@ -143,13 +143,14 @@ namespace automate{
 
     ~Automate();
     State* getState(string state_name);
+    string to_string() const;
   };
   
   //Fusion of Automata
-  Automate concatenation(Automate & prefix, Automate & sufixe);
-  Automate disjonction(Automate & automate1, Automate & automate2);
-  Automate intersection(Automate & automate1, Automate & automate2);
-  Automate iteration(Automate & automate, vector<int> evolving_layers);
-};
+  Automate *concatenation(Automate * prefix, Automate * sufixe);
+  Automate *disjonction(Automate * autom1, Automate * autom2);
+  //Automate *intersection(Automate * automate1, Automate * automate2);
+  //Automate *iteration(Automate * automate, vector<int> evolving_layers);
+}
 
 #endif
