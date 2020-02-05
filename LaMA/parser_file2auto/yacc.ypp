@@ -1,5 +1,4 @@
 %{
-  #include <iostream>
   #include <string>
   #include <map>
   #include <tuple>
@@ -58,7 +57,7 @@
 
 %%
 autom :
-  init_alloc NLINE DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH NLINE arretes NLINE {
+  init_alloc NLINE DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH NLINE arretes NLINE { 
     generate_automate->initial_valuation = Valuation ($1,nb_vars);
     $$ = generate_automate;
   }
@@ -72,7 +71,9 @@ init_alloc :
     nb_vars = nb_vars < $3.size()?$3.size():nb_vars;
     $$ = $1;
   }
-  | layer {$$ = {$1};}
+  | layer {$$ = {$1};
+           nb_vars = nb_vars < $1.size()?$1.size():nb_vars; 
+  }
   | %empty {$$ = {};}
 
 layer : names { $$ = {$1}; }
@@ -93,7 +94,7 @@ node :
      generate_automate->start = &(*ite);
      generate_automate->transitions.insert(std::pair<State*, vector<Transition*>>(generate_automate->start, {}));
    }
-  |NAME END_NODE{
+  |NAME END_NODE{ 
     generate_automate->states.push_back(State($1));
     std::list<State>::iterator ite = generate_automate->states.end();
     ite--;
@@ -130,8 +131,8 @@ node :
   }
 
 arretes :
-   arretes NLINE arrete { /*Nothing to do.*/ }
-  |arrete { /*Nothing to do.*/ }
+   arretes NLINE arrete {/*Nothing to do.*/ }
+  |arrete {/*Nothing to do.*/ }
 
 arrete :
   /*Ori*//*Dest*//*Event*/ /*Alloc-free*/
@@ -206,13 +207,14 @@ arrete :
           generate_automate->transitions[origine_state].push_back(new_trans);
         }
       }
+      generate_automate->constants.insert($3);
     }
 
 names :
     LACOLADE list_name RACOLADE {$$ = $2;}
   | LACOLADE RACOLADE { $$ = vector<std::string>();} 
     //TODO Problème il est possible de mettre des listes vides de noeuds pour 
-    // les entrées et sorties des arrêtes.
+    // les entrées et sorties des non-epsilon arrêtes.
   | NAME {$$ = {$1};}
 
 list_name :

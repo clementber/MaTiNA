@@ -54,7 +54,12 @@ namespace automate{
       State(string identifiant);
       ~State();
   };
-
+  
+  class Epsilon_Transition;
+  class Constant_Transition;
+  class Universal_Transition;
+  class Var_Transition;
+  
   class Transition{
   public:
     State* origine;
@@ -73,8 +78,15 @@ namespace automate{
     virtual ~Transition();
     virtual Valuation accept_epsilon(Valuation memory);
     virtual Valuation accept_value(Valuation memory,string event);
+    virtual bool is_epsilon() const;
     virtual Transition* copy() const= 0;
     virtual string to_string() const =0;
+    //Method used to combine transitions.
+    virtual Transition * intersect_trans(Transition *trans) ;
+    virtual Transition * intersect_trans(Var_Transition *trans) ;
+    virtual Transition * intersect_trans(Constant_Transition *trans) ;
+    virtual Transition * intersect_trans(Universal_Transition *trans) ;
+    virtual Transition * intersect_trans(Epsilon_Transition *trans);
   };
 
   class Epsilon_Transition : public Transition{
@@ -84,6 +96,7 @@ namespace automate{
     Epsilon_Transition(State* const& ori, State* const& dest);
     ~Epsilon_Transition();
     Valuation accept_epsilon(Valuation memory);
+    bool is_epsilon() const;
     Transition* copy() const;
     string to_string() const;
   };
@@ -101,6 +114,10 @@ namespace automate{
     Valuation accept_value(Valuation memory,string event);
     Transition* copy() const;
     string to_string() const;
+    //Method used to combine transitions.
+    virtual Transition * intersect_trans(Transition *trans) ;
+    virtual Transition * intersect_trans(Var_Transition *trans) ;
+    virtual Transition * intersect_trans(Universal_Transition *trans) ;
   };
 
   class Constant_Transition : public Transition{
@@ -114,6 +131,10 @@ namespace automate{
     Valuation accept_value(Valuation memory,string event);
     Transition* copy() const;
     string to_string() const;
+    //Method used to combine transitions.
+    Transition * intersect_trans(Transition *trans) ;
+    Transition * intersect_trans(Constant_Transition *trans) ;
+    Transition * intersect_trans(Universal_Transition *trans) ;
   };
   
   class Universal_Transition : public Transition{
@@ -126,11 +147,17 @@ namespace automate{
     Valuation accept_value(Valuation memory,string constant);
     Transition* copy() const;
     string to_string() const;
+    //Method used to combine transitions.
+    Transition * intersect_trans(Transition *trans) ;
+    Transition * intersect_trans(Var_Transition *trans) ;
+    Transition * intersect_trans(Constant_Transition *trans) ;
+    Transition * intersect_trans(Universal_Transition *trans) ;
   };
 
   class Automate{
   public:
     Valuation initial_valuation;
+    unordered_set<string> constants;
     list<State> states;
     map<State*,vector<Transition*>> transitions;
     State* start;
@@ -149,7 +176,7 @@ namespace automate{
   //Fusion of Automata
   Automate *concatenation(Automate * prefix, Automate * sufixe);
   Automate *disjonction(Automate * autom1, Automate * autom2);
-  //Automate *intersection(Automate * automate1, Automate * automate2);
+  Automate *intersection(Automate * autom1, Automate * autom2);
   //Automate *iteration(Automate * automate, vector<int> evolving_layers);
 }
 

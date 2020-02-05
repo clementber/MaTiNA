@@ -1,0 +1,662 @@
+Grammaire
+
+    0 $accept: autom "end of file"
+
+    1 autom: init_alloc NLINE DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH NLINE arretes NLINE
+
+    2 init_alloc: init_alloc NLINE layer
+    3           | layer
+    4           | %empty
+
+    5 layer: names
+    6      | layer names
+
+    7 nodes: nodes NLINE node
+    8      | node
+
+    9 node: NAME START_NODE
+   10     | NAME END_NODE
+   11     | NAME
+   12     | NAME START_NODE END_NODE
+   13     | NAME END_NODE START_NODE
+
+   14 arretes: arretes NLINE arrete
+   15        | arrete
+
+   16 arrete: names names vars actions
+   17       | names names NONE actions
+   18       | names names ALL actions
+   19       | names names NAME actions
+
+   20 names: LACOLADE list_name RACOLADE
+   21      | LACOLADE RACOLADE
+   22      | NAME
+
+   23 list_name: list_name COMMA NAME
+   24          | NAME
+
+   25 vars: vars COMMA var
+   26     | var
+
+   27 var: L_PARENTHESE NUMBER COMMA NUMBER R_PARENTHESE
+
+   28 actions: %empty
+   29        | allocs
+   30        | frees
+   31        | frees allocs
+   32        | allocs frees
+
+   33 allocs: ALLOC vars
+
+   34 frees: FREE vars
+
+
+Terminaux, suivis des règles où ils apparaissent
+
+"end of file" (0) 0
+error (256)
+NAME (258) 9 10 11 12 13 19 22 23 24
+NUMBER (259) 27
+LACOLADE (260) 20 21
+RACOLADE (261) 20 21
+COMMA (262) 23 25 27
+R_PARENTHESE (263) 27
+L_PARENTHESE (264) 27
+START_NODE (265) 9 12 13
+END_NODE (266) 10 12 13
+NLINE (267) 1 2 7 14
+DOUBLE_SLASH (268) 1
+NONE (269) 17
+ALL (270) 18
+FREE (271) 34
+ALLOC (272) 33
+
+
+Non-terminaux, suivis des règles où ils apparaissent
+
+$accept (18)
+    à gauche: 0
+autom (19)
+    à gauche: 1, à droite: 0
+init_alloc (20)
+    à gauche: 2 3 4, à droite: 1 2
+layer (21)
+    à gauche: 5 6, à droite: 2 3 6
+nodes (22)
+    à gauche: 7 8, à droite: 1 7
+node (23)
+    à gauche: 9 10 11 12 13, à droite: 7 8
+arretes (24)
+    à gauche: 14 15, à droite: 1 14
+arrete (25)
+    à gauche: 16 17 18 19, à droite: 14 15
+names (26)
+    à gauche: 20 21 22, à droite: 5 6 16 17 18 19
+list_name (27)
+    à gauche: 23 24, à droite: 20 23
+vars (28)
+    à gauche: 25 26, à droite: 16 25 33 34
+var (29)
+    à gauche: 27, à droite: 25 26
+actions (30)
+    à gauche: 28 29 30 31 32, à droite: 16 17 18 19
+allocs (31)
+    à gauche: 33, à droite: 29 31 32
+frees (32)
+    à gauche: 34, à droite: 30 31 32
+
+
+État 0
+
+    0 $accept: . autom "end of file"
+
+    NAME      décalage et aller à l'état 1
+    LACOLADE  décalage et aller à l'état 2
+
+    $défaut  réduction par utilisation de la règle 4 (init_alloc)
+
+    autom       aller à l'état 3
+    init_alloc  aller à l'état 4
+    layer       aller à l'état 5
+    names       aller à l'état 6
+
+
+État 1
+
+   22 names: NAME .
+
+    $défaut  réduction par utilisation de la règle 22 (names)
+
+
+État 2
+
+   20 names: LACOLADE . list_name RACOLADE
+   21      | LACOLADE . RACOLADE
+
+    NAME      décalage et aller à l'état 7
+    RACOLADE  décalage et aller à l'état 8
+
+    list_name  aller à l'état 9
+
+
+État 3
+
+    0 $accept: autom . "end of file"
+
+    "end of file"  décalage et aller à l'état 10
+
+
+État 4
+
+    1 autom: init_alloc . NLINE DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH NLINE arretes NLINE
+    2 init_alloc: init_alloc . NLINE layer
+
+    NLINE  décalage et aller à l'état 11
+
+
+État 5
+
+    3 init_alloc: layer .
+    6 layer: layer . names
+
+    NAME      décalage et aller à l'état 1
+    LACOLADE  décalage et aller à l'état 2
+
+    $défaut  réduction par utilisation de la règle 3 (init_alloc)
+
+    names  aller à l'état 12
+
+
+État 6
+
+    5 layer: names .
+
+    $défaut  réduction par utilisation de la règle 5 (layer)
+
+
+État 7
+
+   24 list_name: NAME .
+
+    $défaut  réduction par utilisation de la règle 24 (list_name)
+
+
+État 8
+
+   21 names: LACOLADE RACOLADE .
+
+    $défaut  réduction par utilisation de la règle 21 (names)
+
+
+État 9
+
+   20 names: LACOLADE list_name . RACOLADE
+   23 list_name: list_name . COMMA NAME
+
+    RACOLADE  décalage et aller à l'état 13
+    COMMA     décalage et aller à l'état 14
+
+
+État 10
+
+    0 $accept: autom "end of file" .
+
+    $défaut  accepter
+
+
+État 11
+
+    1 autom: init_alloc NLINE . DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH NLINE arretes NLINE
+    2 init_alloc: init_alloc NLINE . layer
+
+    NAME          décalage et aller à l'état 1
+    LACOLADE      décalage et aller à l'état 2
+    DOUBLE_SLASH  décalage et aller à l'état 15
+
+    layer  aller à l'état 16
+    names  aller à l'état 6
+
+
+État 12
+
+    6 layer: layer names .
+
+    $défaut  réduction par utilisation de la règle 6 (layer)
+
+
+État 13
+
+   20 names: LACOLADE list_name RACOLADE .
+
+    $défaut  réduction par utilisation de la règle 20 (names)
+
+
+État 14
+
+   23 list_name: list_name COMMA . NAME
+
+    NAME  décalage et aller à l'état 17
+
+
+État 15
+
+    1 autom: init_alloc NLINE DOUBLE_SLASH . NLINE nodes NLINE DOUBLE_SLASH NLINE arretes NLINE
+
+    NLINE  décalage et aller à l'état 18
+
+
+État 16
+
+    2 init_alloc: init_alloc NLINE layer .
+    6 layer: layer . names
+
+    NAME      décalage et aller à l'état 1
+    LACOLADE  décalage et aller à l'état 2
+
+    $défaut  réduction par utilisation de la règle 2 (init_alloc)
+
+    names  aller à l'état 12
+
+
+État 17
+
+   23 list_name: list_name COMMA NAME .
+
+    $défaut  réduction par utilisation de la règle 23 (list_name)
+
+
+État 18
+
+    1 autom: init_alloc NLINE DOUBLE_SLASH NLINE . nodes NLINE DOUBLE_SLASH NLINE arretes NLINE
+
+    NAME  décalage et aller à l'état 19
+
+    nodes  aller à l'état 20
+    node   aller à l'état 21
+
+
+État 19
+
+    9 node: NAME . START_NODE
+   10     | NAME . END_NODE
+   11     | NAME .
+   12     | NAME . START_NODE END_NODE
+   13     | NAME . END_NODE START_NODE
+
+    START_NODE  décalage et aller à l'état 22
+    END_NODE    décalage et aller à l'état 23
+
+    $défaut  réduction par utilisation de la règle 11 (node)
+
+
+État 20
+
+    1 autom: init_alloc NLINE DOUBLE_SLASH NLINE nodes . NLINE DOUBLE_SLASH NLINE arretes NLINE
+    7 nodes: nodes . NLINE node
+
+    NLINE  décalage et aller à l'état 24
+
+
+État 21
+
+    8 nodes: node .
+
+    $défaut  réduction par utilisation de la règle 8 (nodes)
+
+
+État 22
+
+    9 node: NAME START_NODE .
+   12     | NAME START_NODE . END_NODE
+
+    END_NODE  décalage et aller à l'état 25
+
+    $défaut  réduction par utilisation de la règle 9 (node)
+
+
+État 23
+
+   10 node: NAME END_NODE .
+   13     | NAME END_NODE . START_NODE
+
+    START_NODE  décalage et aller à l'état 26
+
+    $défaut  réduction par utilisation de la règle 10 (node)
+
+
+État 24
+
+    1 autom: init_alloc NLINE DOUBLE_SLASH NLINE nodes NLINE . DOUBLE_SLASH NLINE arretes NLINE
+    7 nodes: nodes NLINE . node
+
+    NAME          décalage et aller à l'état 19
+    DOUBLE_SLASH  décalage et aller à l'état 27
+
+    node  aller à l'état 28
+
+
+État 25
+
+   12 node: NAME START_NODE END_NODE .
+
+    $défaut  réduction par utilisation de la règle 12 (node)
+
+
+État 26
+
+   13 node: NAME END_NODE START_NODE .
+
+    $défaut  réduction par utilisation de la règle 13 (node)
+
+
+État 27
+
+    1 autom: init_alloc NLINE DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH . NLINE arretes NLINE
+
+    NLINE  décalage et aller à l'état 29
+
+
+État 28
+
+    7 nodes: nodes NLINE node .
+
+    $défaut  réduction par utilisation de la règle 7 (nodes)
+
+
+État 29
+
+    1 autom: init_alloc NLINE DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH NLINE . arretes NLINE
+
+    NAME      décalage et aller à l'état 1
+    LACOLADE  décalage et aller à l'état 2
+
+    arretes  aller à l'état 30
+    arrete   aller à l'état 31
+    names    aller à l'état 32
+
+
+État 30
+
+    1 autom: init_alloc NLINE DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH NLINE arretes . NLINE
+   14 arretes: arretes . NLINE arrete
+
+    NLINE  décalage et aller à l'état 33
+
+
+État 31
+
+   15 arretes: arrete .
+
+    $défaut  réduction par utilisation de la règle 15 (arretes)
+
+
+État 32
+
+   16 arrete: names . names vars actions
+   17       | names . names NONE actions
+   18       | names . names ALL actions
+   19       | names . names NAME actions
+
+    NAME      décalage et aller à l'état 1
+    LACOLADE  décalage et aller à l'état 2
+
+    names  aller à l'état 34
+
+
+État 33
+
+    1 autom: init_alloc NLINE DOUBLE_SLASH NLINE nodes NLINE DOUBLE_SLASH NLINE arretes NLINE .
+   14 arretes: arretes NLINE . arrete
+
+    NAME      décalage et aller à l'état 1
+    LACOLADE  décalage et aller à l'état 2
+
+    $défaut  réduction par utilisation de la règle 1 (autom)
+
+    arrete  aller à l'état 35
+    names   aller à l'état 32
+
+
+État 34
+
+   16 arrete: names names . vars actions
+   17       | names names . NONE actions
+   18       | names names . ALL actions
+   19       | names names . NAME actions
+
+    NAME          décalage et aller à l'état 36
+    L_PARENTHESE  décalage et aller à l'état 37
+    NONE          décalage et aller à l'état 38
+    ALL           décalage et aller à l'état 39
+
+    vars  aller à l'état 40
+    var   aller à l'état 41
+
+
+État 35
+
+   14 arretes: arretes NLINE arrete .
+
+    $défaut  réduction par utilisation de la règle 14 (arretes)
+
+
+État 36
+
+   19 arrete: names names NAME . actions
+
+    FREE   décalage et aller à l'état 42
+    ALLOC  décalage et aller à l'état 43
+
+    $défaut  réduction par utilisation de la règle 28 (actions)
+
+    actions  aller à l'état 44
+    allocs   aller à l'état 45
+    frees    aller à l'état 46
+
+
+État 37
+
+   27 var: L_PARENTHESE . NUMBER COMMA NUMBER R_PARENTHESE
+
+    NUMBER  décalage et aller à l'état 47
+
+
+État 38
+
+   17 arrete: names names NONE . actions
+
+    FREE   décalage et aller à l'état 42
+    ALLOC  décalage et aller à l'état 43
+
+    $défaut  réduction par utilisation de la règle 28 (actions)
+
+    actions  aller à l'état 48
+    allocs   aller à l'état 45
+    frees    aller à l'état 46
+
+
+État 39
+
+   18 arrete: names names ALL . actions
+
+    FREE   décalage et aller à l'état 42
+    ALLOC  décalage et aller à l'état 43
+
+    $défaut  réduction par utilisation de la règle 28 (actions)
+
+    actions  aller à l'état 49
+    allocs   aller à l'état 45
+    frees    aller à l'état 46
+
+
+État 40
+
+   16 arrete: names names vars . actions
+   25 vars: vars . COMMA var
+
+    COMMA  décalage et aller à l'état 50
+    FREE   décalage et aller à l'état 42
+    ALLOC  décalage et aller à l'état 43
+
+    $défaut  réduction par utilisation de la règle 28 (actions)
+
+    actions  aller à l'état 51
+    allocs   aller à l'état 45
+    frees    aller à l'état 46
+
+
+État 41
+
+   26 vars: var .
+
+    $défaut  réduction par utilisation de la règle 26 (vars)
+
+
+État 42
+
+   34 frees: FREE . vars
+
+    L_PARENTHESE  décalage et aller à l'état 37
+
+    vars  aller à l'état 52
+    var   aller à l'état 41
+
+
+État 43
+
+   33 allocs: ALLOC . vars
+
+    L_PARENTHESE  décalage et aller à l'état 37
+
+    vars  aller à l'état 53
+    var   aller à l'état 41
+
+
+État 44
+
+   19 arrete: names names NAME actions .
+
+    $défaut  réduction par utilisation de la règle 19 (arrete)
+
+
+État 45
+
+   29 actions: allocs .
+   32        | allocs . frees
+
+    FREE  décalage et aller à l'état 42
+
+    $défaut  réduction par utilisation de la règle 29 (actions)
+
+    frees  aller à l'état 54
+
+
+État 46
+
+   30 actions: frees .
+   31        | frees . allocs
+
+    ALLOC  décalage et aller à l'état 43
+
+    $défaut  réduction par utilisation de la règle 30 (actions)
+
+    allocs  aller à l'état 55
+
+
+État 47
+
+   27 var: L_PARENTHESE NUMBER . COMMA NUMBER R_PARENTHESE
+
+    COMMA  décalage et aller à l'état 56
+
+
+État 48
+
+   17 arrete: names names NONE actions .
+
+    $défaut  réduction par utilisation de la règle 17 (arrete)
+
+
+État 49
+
+   18 arrete: names names ALL actions .
+
+    $défaut  réduction par utilisation de la règle 18 (arrete)
+
+
+État 50
+
+   25 vars: vars COMMA . var
+
+    L_PARENTHESE  décalage et aller à l'état 37
+
+    var  aller à l'état 57
+
+
+État 51
+
+   16 arrete: names names vars actions .
+
+    $défaut  réduction par utilisation de la règle 16 (arrete)
+
+
+État 52
+
+   25 vars: vars . COMMA var
+   34 frees: FREE vars .
+
+    COMMA  décalage et aller à l'état 50
+
+    $défaut  réduction par utilisation de la règle 34 (frees)
+
+
+État 53
+
+   25 vars: vars . COMMA var
+   33 allocs: ALLOC vars .
+
+    COMMA  décalage et aller à l'état 50
+
+    $défaut  réduction par utilisation de la règle 33 (allocs)
+
+
+État 54
+
+   32 actions: allocs frees .
+
+    $défaut  réduction par utilisation de la règle 32 (actions)
+
+
+État 55
+
+   31 actions: frees allocs .
+
+    $défaut  réduction par utilisation de la règle 31 (actions)
+
+
+État 56
+
+   27 var: L_PARENTHESE NUMBER COMMA . NUMBER R_PARENTHESE
+
+    NUMBER  décalage et aller à l'état 58
+
+
+État 57
+
+   25 vars: vars COMMA var .
+
+    $défaut  réduction par utilisation de la règle 25 (vars)
+
+
+État 58
+
+   27 var: L_PARENTHESE NUMBER COMMA NUMBER . R_PARENTHESE
+
+    R_PARENTHESE  décalage et aller à l'état 59
+
+
+État 59
+
+   27 var: L_PARENTHESE NUMBER COMMA NUMBER R_PARENTHESE .
+
+    $défaut  réduction par utilisation de la règle 27 (var)

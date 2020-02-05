@@ -168,7 +168,29 @@ Valuation Transition::accept_epsilon(Valuation memory){
 
 Valuation Transition::accept_value(Valuation memory, string p_event){
   return Valuation();
+
 }
+bool Transition::is_epsilon() const {return false;}
+
+//Method used to combine transitions.
+Transition * Transition::intersect_trans(Transition *trans){return nullptr;}
+
+Transition * Transition::intersect_trans(Var_Transition *trans) { 
+  return nullptr;
+}
+
+Transition * Transition::intersect_trans(Constant_Transition *trans) { 
+  return nullptr;
+}
+
+Transition * Transition::intersect_trans(Universal_Transition *trans) { 
+  return nullptr;
+}
+
+Transition * Transition::intersect_trans(Epsilon_Transition *trans){ 
+  return nullptr;
+}
+
 //--------------------------Epsilon-Transition-------------------------------
 
 Epsilon_Transition::Epsilon_Transition(State* const& ori, State* const& dest, 
@@ -187,6 +209,8 @@ Valuation Epsilon_Transition::accept_epsilon(Valuation memory){
   return memory;
 }
 
+bool Epsilon_Transition::is_epsilon() const {return true;}
+
 Transition* Epsilon_Transition::copy() const{
   return new Epsilon_Transition(*this);
 }
@@ -195,8 +219,7 @@ string Epsilon_Transition::to_string() const{
   return "epsi";
 }
 
-
-//-------------------------Event-Transition-------------------------------------
+//-------------------------Var-Transition-------------------------------------
 
 Var_Transition::Var_Transition(State* const& ori, State* const& dest,
                                    vector<Variable> allocs,
@@ -231,6 +254,26 @@ string Var_Transition::to_string() const{
   return res.str();
 }
 
+//Method used to combine transitions.
+Transition * Var_Transition::intersect_trans(Transition *trans){
+  return trans->intersect_trans(this);
+}
+
+Transition * Var_Transition::intersect_trans(Var_Transition *trans) { 
+  Var_Transition * res = new Var_Transition(*this);
+  res->allocations.insert(trans->allocations.end(),trans->allocations.begin(),trans->allocations.end());
+  res->frees.insert(trans->frees.end(),trans->frees.begin(),trans->frees.end());
+  res->triggers.insert(trans->triggers.end(),trans->triggers.begin(), trans->triggers.end());
+  return res;
+}
+
+Transition * Var_Transition::intersect_trans(Universal_Transition *trans) { 
+  Var_Transition * res = new Var_Transition(*this);
+  res->allocations.insert(trans->allocations.end(),trans->allocations.begin(),trans->allocations.end());
+  res->frees.insert(trans->frees.end(),trans->frees.begin(),trans->frees.end());
+  return res;
+}
+
 //---------------------------Constant-Transition--------------------------------
 Constant_Transition::Constant_Transition(State* const& ori, State* const& dest,
                                            vector<Variable> allocs, 
@@ -261,6 +304,26 @@ string Constant_Transition::to_string() const{
   return constant;
 }
 
+//Method used to combine transitions.
+Transition * Constant_Transition::intersect_trans(Transition *trans){
+  return trans->intersect_trans(this);
+}
+
+Transition * Constant_Transition::intersect_trans(Constant_Transition *trans) {
+  if(this->constant!=trans->constant){return nullptr;} 
+  Constant_Transition * res = new Constant_Transition(*this);
+  res->allocations.insert(trans->allocations.end(),trans->allocations.begin(),trans->allocations.end());
+  res->frees.insert(trans->frees.end(),trans->frees.begin(),trans->frees.end());
+  return res;
+}
+
+Transition * Constant_Transition::intersect_trans(Universal_Transition *trans) { 
+  Constant_Transition * res = new Constant_Transition(*this);
+  res->allocations.insert(trans->allocations.end(),trans->allocations.begin(),trans->allocations.end());
+  res->frees.insert(trans->frees.end(),trans->frees.begin(),trans->frees.end());
+  return res;
+}
+
 //--------------------------Universal-Transition--------------------------------
 
 Universal_Transition::Universal_Transition(State* const& ori, State* const& dest,
@@ -287,6 +350,32 @@ Transition* Universal_Transition::copy() const{
 
 string Universal_Transition::to_string() const{
   return "@";
+}
+
+//Method used to combine transitions.
+Transition * Universal_Transition::intersect_trans(Transition *trans){
+  return trans->intersect_trans(this);
+}
+
+Transition * Universal_Transition::intersect_trans(Var_Transition *trans) {
+  Var_Transition * res = new Var_Transition(*trans);
+  res->allocations.insert(this->allocations.end(),this->allocations.begin(),this->allocations.end());
+  res->frees.insert(this->frees.end(),this->frees.begin(),this->frees.end());
+  return res;
+}
+
+Transition * Universal_Transition::intersect_trans(Constant_Transition *trans) {
+  Constant_Transition * res = new Constant_Transition(*trans);
+  res->allocations.insert(this->allocations.end(),this->allocations.begin(),this->allocations.end());
+  res->frees.insert(this->frees.end(),this->frees.begin(),this->frees.end());
+  return res;
+}
+
+Transition * Universal_Transition::intersect_trans(Universal_Transition *trans) { 
+  Universal_Transition * res =new Universal_Transition(*this);
+  res->allocations.insert(trans->allocations.end(),trans->allocations.begin(),trans->allocations.end());
+  res->frees.insert(trans->frees.end(),trans->frees.begin(),trans->frees.end());
+  return res;
 }
 
 //-------------------------Automata---------------------------------------------
@@ -370,11 +459,11 @@ Automate *automate::concatenation(Automate * prefix, Automate * suffix){
   map<State*,State*> prefix_states,suffix_states;
   for(State & state : prefix->states){
     generated_autom->states.push_back(state);
-    prefix_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
+    prefix_states[&state] =&*--(generated_autom->states.end());
   }
   for(State & state : suffix->states){
     generated_autom->states.push_back(state);
-    suffix_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
+    suffix_states[&state]=&*--(generated_autom->states.end());
   }
   //Set initial and final states
   generated_autom->start = prefix_states.at(prefix->start);
@@ -418,6 +507,9 @@ Automate *automate::concatenation(Automate * prefix, Automate * suffix){
   //Create the initial valuation of the automaton.
   generated_autom->initial_valuation = prefix->initial_valuation.join(suffix->initial_valuation);
   
+  //Fusion constants alphabet
+  generated_autom->constants.insert(prefix->constants.begin(),prefix->constants.end());
+  generated_autom->constants.insert(suffix->constants.begin(),suffix->constants.end());
   return generated_autom;
 }
 
@@ -427,11 +519,11 @@ Automate *automate::disjonction(Automate * autom1, Automate * autom2){
   map<State*,State*> autom1_states,autom2_states;
   for(State & state : autom1->states){
     generated_autom->states.push_back(state);
-    autom1_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
+    autom1_states[&state]=&*--(generated_autom->states.end());
   }
   for(State & state : autom2->states){
     generated_autom->states.push_back(state);
-    autom2_states.insert(pair<State*,State*>(&state,&(*(--(generated_autom->states.end())))));
+    autom2_states[&state] = &*--(generated_autom->states.end());
   }
   //Set final states
   for(State * end_state : autom1->endStates){
@@ -472,13 +564,98 @@ Automate *automate::disjonction(Automate * autom1, Automate * autom2){
   //Create the initial valuation of the automaton.
   generated_autom->initial_valuation = autom1->initial_valuation.join(autom2->initial_valuation);
   
+  //Fusion constants alphabet
+  generated_autom->constants.insert(autom1->constants.begin(),autom1->constants.end());
+  generated_autom->constants.insert(autom2->constants.begin(),autom2->constants.end());
   return generated_autom;
 }
 
-/*Automate *intersection(Automate & automate1, Automate & automate2){
-
+// TODO : À optimiser
+Automate *intersection(Automate * autom1, Automate * autom2){
+  Automate * generated_autom = new Automate();
+  //Copy states in the new automaton. Create dictionnary for pointers
+  map<State*,map<State*,State*>> dic_states;
+  for(State & autom1_state : autom1->states){
+    for(State & autom2_state : autom2->states){
+      generated_autom->states.push_back(State(autom1_state.id +"&"+ autom2_state.id));
+      dic_states[&autom1_state][&autom2_state] = &*--(generated_autom->states.end());
+    }
+  }
+  
+  //Set initial/final states to the product of the same states of both automata
+  generated_autom->start = dic_states[autom1->start][autom2->start];
+  for(State* endState1 : autom1->endStates){
+    for(State* endState2 : autom2->endStates){
+      generated_autom->endStates.push_back(dic_states[endState1][endState2]);
+    }
+  }
+  
+  //Create copy of the transitions
+  for(auto elmt1 : autom1->transitions){
+    for(Transition * trans1 : elmt1.second){
+      if(trans1->is_epsilon()){
+        for(State & st2 : autom2->states){
+          Transition * new_trans = trans1->copy();
+          new_trans->origine = dic_states[trans1->origine][&st2];
+          new_trans->destination = dic_states[trans1->destination][&st2];
+          generated_autom->transitions[new_trans->origine].push_back(new_trans);
+        }
+      }else{
+        for(auto elmt2 : autom2->transitions){
+          for(Transition * trans2: elmt2.second){
+            Transition * new_trans = trans1->intersect_trans(trans2);
+            if(new_trans != nullptr){
+              new_trans->origine = dic_states[trans1->origine][trans2->origine];
+              new_trans->destination = dic_states[trans1->destination][trans2->destination];
+              generated_autom->transitions[new_trans->origine].push_back(new_trans);
+            }
+          }
+        }
+      }
+    }
+  }
+  for(auto elmt2 : autom2->transitions){
+    for(Transition * trans2: elmt2.second){
+      if(trans2->is_epsilon()){
+        for(State & st1 : autom1->states){
+          Transition * new_trans = trans2->copy();
+          new_trans->origine = dic_states[&st1][trans2->origine];
+          new_trans->destination = dic_states[&st1][trans2->destination];
+          generated_autom->transitions[new_trans->origine].push_back(new_trans);
+        }
+      }
+    }
+  }
+  
+  //Set initial Valuation
+  generated_autom->initial_valuation = autom1->initial_valuation.join(autom2->initial_valuation);
+  
+  //Fusion constants alphabet
+  generated_autom->constants.insert(autom1->constants.begin(),autom1->constants.end());
+  generated_autom->constants.insert(autom2->constants.begin(),autom2->constants.end());
+  return generated_autom;
 }
+/*
+enum var_state{ U, A, OU, OA};
 
-Automate *iteration(Automate & automate, vector<int> evolving_layers){
-
+Automate *iteration(Automate * automate, vector<int> evolving_layers){
+  //Initialization of structures;
+  Automate * generated_autom = new Automate();
+  map<State*, map<var_state,State*>> dic_states;
+  vecotr<pair<State*,var_state>> to_do;
+  //Creation of the initial state
+  generated_autom->states.push_back(State(automate->start->id + "U"));
+  generated_autom->start = &*(--generated_autom->states.end());
+  to_do.push_back(pair<State*,var_state>(automate->start,U));
+  dic_states[automate->start][U] = generated_autom->start;
+  
+  //Breadth First search state/transition generation
+  while(! to_do.empty()){
+    pair<State*, var_state> doing = to_do.pop_back();
+    State *curr_state = dic_states[doing.first][doing.second];
+    if(!generated_autom->transitions[curr_state].empty()){
+      continue;
+    }
+    
+  }
 }*/
