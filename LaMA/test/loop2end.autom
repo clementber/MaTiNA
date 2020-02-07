@@ -1,0 +1,9 @@
+{qua} {pouet}
+//
+ini #S
+end1 #E
+end2 #E
+//
+ini ini (0,0)
+ini end1 #N
+ini end2 truc

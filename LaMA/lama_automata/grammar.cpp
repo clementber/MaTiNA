@@ -17,7 +17,7 @@ string Variable::to_string() const{
 Valuation::Valuation() : value(0){}
   
 Valuation::Valuation(unsigned int nb_layers, unsigned int nb_variables):
-  nb_variables(nb_variables), value(nb_layers)
+  nb_variable(nb_variables), value(nb_layers)
 {
   for(unsigned int i = 0; i< nb_layers; i++){
     value[i] = vector<pair<bool,unordered_set<string>>>(nb_variables);
@@ -28,33 +28,33 @@ Valuation::Valuation(unsigned int nb_layers, unsigned int nb_variables):
 }
 
 Valuation::Valuation(vector<vector<vector<string>>> const& source, int nb_vars):
-  nb_variables(nb_vars), value(source.size())
+  nb_variable(nb_vars), value(source.size())
 {
   for(unsigned int i = 0; i< source.size(); i++){
-    value[i] = vector<pair<bool,unordered_set<string>>>(nb_variables);
+    value[i] = vector<pair<bool,unordered_set<string>>>(nb_variable);
     unsigned int j(0);
     for(; j< source[i].size(); j++){
       value[i][j] = pair<bool,unordered_set<string>>(false,unordered_set<string>());
       value[i][j].second.insert(source[i][j].begin(),source[i][j].end());
     }
-    for(;j< nb_variables; j++){
+    for(;j< nb_variable; j++){
       value[i][j] = pair<bool,unordered_set<string>>(false,unordered_set<string>());
     }
   }
 }
 
 Valuation::Valuation(Valuation const& original):
-  nb_variables(original.nb_variables), value(original.value){}
+  nb_variable(original.nb_variable), value(original.value){}
 
 Valuation::~Valuation()= default;
 
 unsigned int Valuation::nb_layers() const { return value.size(); }
 
-unsigned int Valuation::get_nb_variables() const { return nb_variables; }
+unsigned int Valuation::nb_variables() const { return nb_variable; }
 
 //TODO optimize
 bool Valuation::isFresh(int const& layer, string const& event) const{
-  for(unsigned int i = 0; i < nb_variables; i++){
+  for(unsigned int i = 0; i < nb_variable; i++){
     if(value[layer][i].second.find(event) != value[layer][i].second.end()){
       return false;
     }
@@ -105,36 +105,40 @@ bool Valuation::use(vector<Variable> const& to_use, string const& event){
 Valuation Valuation::join(Valuation const& val2) const{
   Valuation res(*this);
   res.value.resize((nb_layers()< val2.nb_layers())?val2.nb_layers():nb_layers());
-  res.nb_variables = (nb_variables< val2.nb_variables)?val2.nb_variables:nb_variables;
+  res.nb_variable = (nb_variable< val2.nb_variable)?val2.nb_variable:nb_variable;
   unsigned int common_layers = (nb_layers()> val2.nb_layers())?val2.nb_layers():nb_layers();
-  unsigned int common_vars = (nb_variables> val2.nb_variables)?val2.nb_variables:nb_variables;
+  unsigned int common_vars = (nb_variable> val2.nb_variable)?val2.nb_variable:nb_variable;
   unsigned int i=0;
   for(; i< common_layers;i++){
     unsigned int j = 0;
     for(; j < common_vars; j++){
       res.value[i][j].second.insert(val2.value[i][j].second.begin(),val2.value[i][j].second.end());
     }
-    for(; j < val2.nb_variables; j++){
+    for(; j < val2.nb_variable; j++){
       res.value[i][j] = val2.value[i][j];
     }
   }
   for(; i < val2.nb_layers(); i++){
     unsigned int j = 0;
-    for(; j< val2.nb_variables;j++){
+    for(; j< val2.nb_variable;j++){
       res.value[i][j] = val2.value[i][j];
     }
-    for(;j < this->nb_variables; j++){
+    for(;j < this->nb_variable; j++){
       res.value[i][j] = pair<bool,unordered_set<string>>(false, unordered_set<string>());
     }
   }
   return res;
 }
 
+bool Valuation::operator==(Valuation const& val2) const{
+  return value == val2.value;
+}
+
 string Valuation::to_string() const{
   stringstream res;
   for(unsigned int i = 0; i < nb_layers(); i++){
     res << "L"<< i << ": ";
-    for(unsigned int j = 0; j < nb_variables; j++){
+    for(unsigned int j = 0; j < nb_variable; j++){
       res << "{";
       for(string val : value[i][j].second){
         res << val << ",";
@@ -166,10 +170,14 @@ Valuation Transition::accept_epsilon(Valuation memory){
   return Valuation();
 }
 
-Valuation Transition::accept_value(Valuation memory, string p_event){
+Valuation Transition::accept_value(Valuation memory, string value){
   return Valuation();
-
 }
+
+Valuation Transition::accept_constant(Valuation memory, string constant){
+  return Valuation();
+}
+
 bool Transition::is_epsilon() const {return false;}
 
 //Method used to combine transitions.
@@ -287,8 +295,8 @@ Constant_Transition::Constant_Transition(State* const& ori, State* const& dest,
   
 Constant_Transition::~Constant_Transition() = default;
 
-Valuation Constant_Transition::accept_value(Valuation memory, string event){
-  if(constant != event){
+Valuation Constant_Transition::accept_constant(Valuation memory, string const_in){
+  if(constant != const_in){
     return Valuation();
   }
   memory.alloc(this->allocations);
@@ -339,7 +347,12 @@ Universal_Transition::~Universal_Transition() = default;
 Valuation Universal_Transition::accept_value(Valuation memory, string event){
   memory.alloc(this->allocations);
   memory.desalloc(this->frees);
+  return memory;
+}
 
+Valuation Universal_Transition::accept_constant(Valuation memory, string constant){
+  memory.alloc(this->allocations);
+  memory.desalloc(this->frees);
   return memory;
 }
 

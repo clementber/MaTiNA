@@ -24,7 +24,7 @@ namespace automate{
 
   class Valuation{
     private:
-      unsigned int nb_variables;
+      unsigned int nb_variable;
       vector<vector<pair<bool,unordered_set<string>>>> value;
       
       bool can_use(vector<Variable> const& to_use, string const& event);
@@ -37,11 +37,12 @@ namespace automate{
       ~Valuation();
       
       unsigned int nb_layers() const;
-      unsigned int get_nb_variables() const;
+      unsigned int nb_variables() const;
       bool isFresh(int const& layer, string const& event) const;
       void alloc(vector<Variable> const& to_alloc);
       void desalloc(vector<Variable> const& to_free);
       bool use(vector<Variable> const& to_use, string const& event);
+      bool operator==(Valuation const& val2) const;
       Valuation join(Valuation const& val) const; //union
       string to_string() const;
   };
@@ -76,11 +77,14 @@ namespace automate{
                vector<Variable> allocs, vector<Variable> freez);
     Transition(State* const& ori, State* const& dest);
     virtual ~Transition();
-    virtual Valuation accept_epsilon(Valuation memory);
-    virtual Valuation accept_value(Valuation memory,string event);
+    //Utilitary methods
     virtual bool is_epsilon() const;
     virtual Transition* copy() const= 0;
     virtual string to_string() const =0;
+    //Method used to compute the enabling of the transition.
+    virtual Valuation accept_epsilon(Valuation memory);
+    virtual Valuation accept_value(Valuation memory,string event);
+    virtual Valuation accept_constant(Valuation memory,string constant);
     //Method used to combine transitions.
     virtual Transition * intersect_trans(Transition *trans) ;
     virtual Transition * intersect_trans(Var_Transition *trans) ;
@@ -126,9 +130,9 @@ namespace automate{
     
     Constant_Transition(State* const& ori, State* const& dest, 
                vector<Variable> allocs, vector<Variable> freez,string constant);
-    Constant_Transition(State* const& ori, State* const& dest, string constant);
+    Constant_Transition(State* const& ori, State* const& dest, string const_in);
     ~Constant_Transition();
-    Valuation accept_value(Valuation memory,string event);
+    Valuation accept_constant(Valuation memory,string constant);
     Transition* copy() const;
     string to_string() const;
     //Method used to combine transitions.
@@ -144,7 +148,8 @@ namespace automate{
                vector<Variable> allocs, vector<Variable> freez);
     Universal_Transition(State* const& ori, State* const& dest);
     ~Universal_Transition();
-    Valuation accept_value(Valuation memory,string constant);
+    Valuation accept_value(Valuation memory,string value);
+    Valuation accept_constant(Valuation memory,string constant);
     Transition* copy() const;
     string to_string() const;
     //Method used to combine transitions.
