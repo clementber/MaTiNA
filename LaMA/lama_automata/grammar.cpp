@@ -97,6 +97,7 @@ bool Valuation::use(vector<Variable> const& to_use, string const& event){
   for(Variable var : to_use){
     if(value[var.layer][var.name].first){ //Allocated case (write mode)
       value[var.layer][var.name].second.insert(event);
+      value[var.layer][var.name].first = false;
     }
   }
   return true;
@@ -137,7 +138,7 @@ bool Valuation::operator==(Valuation const& val2) const{
 string Valuation::to_string() const{
   stringstream res;
   for(unsigned int i = 0; i < nb_layers(); i++){
-    res << "L"<< i << ": ";
+    res << "\e[1mL"<< i << "\e[0m: ";
     for(unsigned int j = 0; j < nb_variable; j++){
       res << "{";
       for(string val : value[i][j].second){
@@ -145,8 +146,9 @@ string Valuation::to_string() const{
       }
       res << "}" << ((value[i][j].first)?"* ":" ");
     }
-    res << "\n";
+    res << " | ";
   }
+  res << "\n";
   return res.str();
 }
 
@@ -394,6 +396,28 @@ Transition * Universal_Transition::intersect_trans(Universal_Transition *trans) 
 //-------------------------Automata---------------------------------------------
 
 Automate::Automate() = default;
+
+Automate::Automate(Automate* autom):initial_valuation(autom->initial_valuation),
+      constants(autom->constants){
+  map<State*,State*> dic;
+  for(State & sta : autom->states){
+    states.push_back(sta.id);
+    dic[&sta] = &*--states.end();
+  }
+  start = dic[autom->start];
+  for(State * endState : autom->endStates){
+    endStates.push_back(dic[endState]);
+  }
+  for(auto & elmt : autom->transitions){
+    State * orig = dic[elmt.first];
+    for(Transition * trans : elmt.second){
+      Transition * new_trans = trans->copy();
+      new_trans->origine = orig;
+      new_trans->destination = dic[new_trans->destination];
+      transitions[orig].push_back(new_trans);
+    }
+  }
+}
 
 Automate::Automate(Valuation initial_valuation, list<State> p_states, 
                    map<State*, vector<Transition*>> p_transitions,
@@ -648,27 +672,36 @@ Automate *intersection(Automate * autom1, Automate * autom2){
   generated_autom->constants.insert(autom2->constants.begin(),autom2->constants.end());
   return generated_autom;
 }
-/*
-enum var_state{ U, A, OU, OA};
 
-Automate *iteration(Automate * automate, vector<int> evolving_layers){
+Automate *iteration(Automate * automate){
   //Initialization of structures;
-  Automate * generated_autom = new Automate();
-  map<State*, map<var_state,State*>> dic_states;
-  vecotr<pair<State*,var_state>> to_do;
-  //Creation of the initial state
-  generated_autom->states.push_back(State(automate->start->id + "U"));
-  generated_autom->start = &*(--generated_autom->states.end());
-  to_do.push_back(pair<State*,var_state>(automate->start,U));
-  dic_states[automate->start][U] = generated_autom->start;
-  
-  //Breadth First search state/transition generation
-  while(! to_do.empty()){
-    pair<State*, var_state> doing = to_do.pop_back();
-    State *curr_state = dic_states[doing.first][doing.second];
-    if(!generated_autom->transitions[curr_state].empty()){
-      continue;
+  Automate * generated_autom = new Automate(automate);
+  //Creation new initial state and transition to previous one.
+  State* old_start(generated_autom->start); //Need for transitions duplications
+  generated_autom->states.push_back(State("it-"+automate->start->id));
+  generated_autom->start = &*--(generated_autom->states.end());
+  Transition * epsi_trans = new Epsilon_Transition(generated_autom->start, old_start);
+  generated_autom->transitions[generated_autom->start].push_back(epsi_trans);
+  //Creation new final state
+  generated_autom->states.push_back(State(generated_autom->start->id+"epsi"));
+  State * epsi_end = &*--(generated_autom->states.end());
+  generated_autom->endStates.push_back(epsi_end);
+  //Creation of epsilon transition for the new final state 
+  //(composition with concatenation need this)
+  epsi_trans = new Epsilon_Transition(generated_autom->start, epsi_end);
+  generated_autom->transitions[generated_autom->start].push_back(epsi_trans);
+  //Duplicate final transitions to loop back to initial state.
+  for(auto elmt : generated_autom->transitions){
+    for(Transition * trans : elmt.second){
+      for(State * endState : generated_autom->endStates){
+        if(trans->destination == endState){
+          Transition * new_endTrans = trans->copy();
+          new_endTrans->destination = old_start;
+          generated_autom->transitions[elmt.first].push_back(new_endTrans);
+          break;
+        }
+      }
     }
-    
   }
-}*/
+  return generated_autom;
+}

@@ -169,6 +169,7 @@ namespace automate{
     vector<State*> endStates;
 
     Automate();
+    Automate(Automate * autom);
     Automate(Valuation initial_valuation, list<State> p_states, 
              map<State*, vector<Transition*>> p_transitions, State* p_start, 
              vector<State*> p_endStates);
@@ -182,7 +183,7 @@ namespace automate{
   Automate *concatenation(Automate * prefix, Automate * sufixe);
   Automate *disjonction(Automate * autom1, Automate * autom2);
   Automate *intersection(Automate * autom1, Automate * autom2);
-  //Automate *iteration(Automate * automate, vector<int> evolving_layers);
+  Automate *iteration(Automate * automate); //Iteration with side_effect
 }
 
 #endif
